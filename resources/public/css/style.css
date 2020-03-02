@@ -56,6 +56,9 @@ input {
   height: 0;
   padding-bottom: 100%;
 }
+.square.green {
+  background: green;
+}
 .piece-container {
   position: absolute;
   top: 0;
