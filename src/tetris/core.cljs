@@ -1,6 +1,6 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [tetris.helpers :refer [piece-can-move-down-p]]
+   [tetris.helpers :refer [random-up-to piece-can-move-down-p]]
    [goog.dom :as gdom]
    [reagent.core :as reagent :refer [atom create-class]]))
 
@@ -9,6 +9,7 @@
 
 (def board-width 10)
 (def board-height 20)
+(def colors [:blue :green :red :orange :yellow :purple])
 
 (defn generate-board []
   (vec (repeat board-height (vec (repeat board-width {})))))
@@ -20,10 +21,11 @@
 (def game (atom game-initial-state))
 
 (defn add-piece! []
-  (do (swap! game assoc-in [:board 0 0] {:color :green :active true :x 0 :y 0})
-      (swap! game assoc-in [:board 0 1] {:color :green :active true :x 1 :y 0})
-      (swap! game assoc-in [:board 1 0] {:color :green :active true :x 0 :y 1})
-      (swap! game assoc-in [:board 1 1] {:color :green :active true :x 1 :y 1})))
+  (let [color (get colors (random-up-to (count colors)))]
+    (do (swap! game assoc-in [:board 0 0] {:color color :active true :x 0 :y 0})
+        (swap! game assoc-in [:board 0 1] {:color color :active true :x 1 :y 0})
+        (swap! game assoc-in [:board 1 0] {:color color :active true :x 0 :y 1})
+        (swap! game assoc-in [:board 1 1] {:color color :active true :x 1 :y 1}))))
 
 (defn start! []
   (do (reset! game game-initial-state)
@@ -34,6 +36,7 @@
 (defn move-active-piece-down! []
   (let [{:keys [board]} @game
         active-squares (filter #(= (:active %) true) (flatten board))
+        active-color (:color (first active-squares))
         active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)]
     (do (loop [xs-ys active-xs-ys]
           (if (not (empty? xs-ys))
@@ -45,7 +48,7 @@
           (if (not (empty? xs-ys))
             (let [x-y (first xs-ys)
                   x (first x-y) y (second x-y)]
-              (do (swap! game assoc-in [:board y x] {:color :green :active true :x x :y y})
+              (do (swap! game assoc-in [:board y x] {:color active-color :active true :x x :y y})
                   (recur (rest xs-ys))))))
         ;; (swap! game assoc :state :stopped)
         )))
@@ -64,8 +67,7 @@
       (move-active-piece-down!)
       (do
         (deactivate-piece!)
-        (add-piece!))
-      )))
+        (add-piece!)))))
 
 (defn tetris []
   (create-class
@@ -86,8 +88,8 @@
                                   (let [{:keys [color]} square]
                                     [:div.square
                                      {:key (str x y)
-                                      :class [color "hi"]
-                                      :style {:grid-column (+ x 1) :grid-row (+ y 1)}}
+                                      :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                              :background color}}
                                      [:span.piece-container]]))
                                 row))
                              board)]]

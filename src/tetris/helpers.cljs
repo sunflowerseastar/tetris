@@ -2,6 +2,10 @@
 
 (defn get-square [x y board]
   (-> board (nth y) (nth x)))
+
+(defn random-up-to [n]
+  (js/parseInt (* (.random js/Math) n)))
+
 (defn piece-can-move-down-p [board board-height]
   (let [actives (->> board
                      flatten
