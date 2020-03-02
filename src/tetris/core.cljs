@@ -50,10 +50,22 @@
         ;; (swap! game assoc :state :stopped)
         )))
 
+(defn deactivate-piece! []
+  (let [deactivated-board (vec (map (fn [row]
+                                      (vec (map (fn [sq]
+                                                  (if (:active sq) (assoc sq :active false) sq))
+                                                row)))
+                                    (@game :board)))]
+    (swap! game assoc :board deactivated-board)))
+
 (defn tick! []
   (when (= (@game :state) :running)
-    (if (= (@game :block-is-falling) false) (add-piece!)
-        (when (piece-can-move-down-p (@game :board) board-height) (move-active-piece-down!)))))
+    (if (piece-can-move-down-p (@game :board) board-height)
+      (move-active-piece-down!)
+      (do
+        (deactivate-piece!)
+        (add-piece!))
+      )))
 
 (defn tetris []
   (create-class
