@@ -1,0 +1,113 @@
+body {
+  position: fixed;
+  width: 100%;
+  margin: 0;
+  font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
+}
+input {
+  font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
+}
+#app {
+  height: 100vh;
+}
+.tetris {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 48px 1em 1em;
+  box-sizing: border-box;
+}
+.board-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .board-container {
+    padding: 1em 0;
+  }
+}
+.board {
+  position: relative;
+  align-self: center;
+  display: grid;
+  width: 100%;
+  max-width: 34vh;
+  margin: 0 auto;
+  grid-template-columns: repeat(10, 10%);
+  border: 2px solid #ddd;
+}
+@media (min-width: 480px) {
+  .board {
+    width: 80%;
+  }
+}
+@media (min-width: 768px) {
+  .board {
+    width: 90%;
+    max-width: 42vh;
+  }
+}
+.square {
+  border: 1px solid #eee;
+  position: relative;
+  height: 0;
+  padding-bottom: 100%;
+}
+.piece-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+button {
+  display: inline-block;
+  padding: 10px 20px;
+  color: black;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: bold;
+  background: white;
+  border: 1px solid transparent;
+}
+button:focus {
+  outline: none;
+  position: relative;
+}
+button:focus:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -5px;
+  left: -6px;
+  width: calc(100% + 10px);
+  height: calc(100% + 8px);
+  border: 1px solid #e2e2e2;
+}
+@media (min-width: 1080px) {
+  button {
+    font-size: 12px;
+  }
+}
+button:hover {
+  color: white;
+  background: black;
+  cursor: pointer;
+}
+button.inactive,
+.inactive button {
+  opacity: 0.2;
+  cursor: default;
+  pointer-events: none;
+}
+.inactive button:hover {
+  color: white;
+  background: black;
+}
