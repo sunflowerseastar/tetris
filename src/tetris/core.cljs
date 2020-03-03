@@ -15,7 +15,6 @@
   (vec (repeat board-height (vec (repeat board-width {})))))
 
 (def game-initial-state {:state :stopped
-                         :block-is-falling false
                          :board (generate-board)})
 
 (def game (atom game-initial-state))
@@ -30,7 +29,6 @@
 (defn start! []
   (do (reset! game game-initial-state)
       (swap! game assoc :state :running)
-      (swap! game assoc :block-is-falling true)
       (add-piece!)))
 
 (defn move-active-piece-down! []
