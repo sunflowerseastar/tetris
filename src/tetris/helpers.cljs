@@ -21,21 +21,21 @@
   (->> squares
        (squares-below board)
        (filter not-active-p)
-       (map empty?)
+       (map nil?)
        (some false?)))
 
 (defn some-square-left-are-non-empty-p [squares board]
   (->> squares
        (map (fn [square] (get-square (dec (:x square)) (:y square) board)))
        (filter #(not (= (:active %) true)))
-       (map empty?)
+       (map nil?)
        (some false?)))
 
 (defn some-square-right-are-non-empty-p [squares board]
   (->> squares
        (map (fn [square] (get-square (inc (:x square)) (:y square) board)))
        (filter #(not (= (:active %) true)))
-       (map empty?)
+       (map nil?)
        (some false?)))
 
 (defn get-actives [board]
