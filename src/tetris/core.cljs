@@ -55,7 +55,8 @@
   (let [{:keys [board]} @game
         active-squares (filter #(= (:active %) true) (flatten board))
         active-color (:color (first active-squares))
-        active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)]
+        active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)
+        new-active-xs-ys (map (fn [x-y] [(x-fn (first x-y)) (y-fn (second x-y))]) active-xs-ys)]
     (do
       ;; remove all active squares
       (loop [xs-ys active-xs-ys]
@@ -64,8 +65,8 @@
                 x (first x-y) y (second x-y)]
             (do (swap! game assoc-in [:board y x] nil)
                 (recur (rest xs-ys))))))
-      ;; re-add active squares incremented per x-fn & y-fn
-      (loop [xs-ys (map (fn [x-y] [(x-fn (first x-y)) (y-fn (second x-y))]) active-xs-ys)]
+      ;; place new-active squares
+      (loop [xs-ys new-active-xs-ys]
         (when (not (empty? xs-ys))
           (let [x-y (first xs-ys)
                 x (first x-y) y (second x-y)]
