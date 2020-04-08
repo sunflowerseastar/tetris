@@ -17,6 +17,29 @@
 (defn not-active-p [square]
   (not (= (:active square) true)))
 
+(defn get-x-y [board x-y]
+  (let [x (first x-y) y (second x-y)]
+    (if (and (pos? x) (<= x (count (first board))))
+      (get-square x y board)
+      nil)))
+
+(defn xs-ys-in-bounds? [xs-ys board]
+  (let [board-width (count (first board))
+        board-height (count board)
+        xs (map first xs-ys)
+        max-x (reduce max xs)
+        min-x (reduce min xs)
+        has-exceeded-right-edge (>= max-x board-width)
+        has-exceeded-left-edge (< min-x 0)]
+    (and (not has-exceeded-left-edge) (not has-exceeded-right-edge))))
+
+(defn xs-ys-are-free? [xs-ys board]
+  (->> xs-ys
+       (map #(get-x-y board %))
+       (filter not-active-p)
+       (map nil?)
+       (every? true?)))
+
 (defn some-square-below-are-non-empty-p [squares board]
   (->> squares
        (squares-below board)
@@ -60,3 +83,26 @@
         max-x (->> actives (map :x) (reduce max))
         has-reached-right-edge (> max-x board-width)]
     (and (not has-reached-right-edge) (not (some-square-right-are-non-empty-p actives board)))))
+
+(defn board->rotated-active-xs-ys [piece-type board]
+  (let [actives (get-actives board)
+        xs (map :x actives)
+        ys (map :y actives)]
+    (cond (= piece-type :square) (map (fn [{:keys [x y]}] [x y]) actives)
+          (= piece-type :straight)
+          (let [is-vertical (apply = xs)]
+            (if is-vertical
+              (let [new-y (second ys)
+                    new-xs (map #(+ (- (first xs) 1) %) [0 1 2 3])
+                    new-xs-ys (map (fn [x] [x new-y]) new-xs)]
+                new-xs-ys)
+              (let [new-x (second xs)
+                    starting-y (dec (first ys))
+                    new-ys (range starting-y (+ starting-y 4))
+                    new-xs-ys (map (fn [y] [new-x y]) new-ys)]
+                new-xs-ys))))))
+
+(defn piece-can-rotate-p [piece-type board]
+  (let [new-xs-ys (board->rotated-active-xs-ys piece-type board)
+        xs-ys-in-bounds (xs-ys-in-bounds? new-xs-ys board)]
+    (and xs-ys-in-bounds (xs-ys-are-free? new-xs-ys board))))

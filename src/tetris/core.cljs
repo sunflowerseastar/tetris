@@ -1,6 +1,12 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [tetris.helpers :refer [random-up-to piece-can-move-down-p piece-can-move-left-p piece-can-move-right-p]]
+   [tetris.helpers :refer [board->rotated-active-xs-ys
+                           get-actives
+                           piece-can-move-down-p
+                           piece-can-move-left-p
+                           piece-can-move-right-p
+                           piece-can-rotate-p
+                           random-up-to]]
    [goog.dom :as gdom]
    [tupelo.core :refer [spyx]]
    [reagent.core :as reagent :refer [atom create-class]]))
@@ -11,13 +17,15 @@
 (def board-width 10)
 (def board-height 20)
 (def colors [:blue :green :red :orange :yellow :purple])
-(def piece-types [:square :straight :l1 :l2])
+;; (def piece-types [:square :straight :l1 :l2])
+(def piece-types [:straight :square])
 
 (defn generate-board []
   (vec (repeat board-height (vec (repeat board-width nil)))))
 
 (def game-initial-state {:state :stopped
                          :active-piece-type nil
+                         :active-piece-color nil
                          :board (generate-board)})
 
 (def game (atom game-initial-state))
@@ -25,31 +33,56 @@
 (defn add-piece! []
   (let [color (get colors (random-up-to (count colors)))
         piece-type (get piece-types (random-up-to (count piece-types)))]
-    (cond
-      (= piece-type :square)
-      (do (swap! game assoc :active-piece-type :square)
-          (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
-          (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
-          (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
-          (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1}))
-      (= piece-type :straight)
-      (do (swap! game assoc :active-piece-type :straight)
-          (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
-          (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
-          (swap! game assoc-in [:board 2 4] {:color color :active true :x 4 :y 2})
-          (swap! game assoc-in [:board 3 4] {:color color :active true :x 4 :y 3}))
-      (= piece-type :l1)
-      (do (swap! game assoc :active-piece-type :l1)
-          (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
-          (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
-          (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
-          (swap! game assoc-in [:board 1 6] {:color color :active true :x 6 :y 1}))
-      (= piece-type :l2)
-      (do (swap! game assoc :active-piece-type :l2)
-          (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
-          (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
-          (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
-          (swap! game assoc-in [:board 1 3] {:color color :active true :x 3 :y 1})))))
+    (do
+      (swap! game assoc :active-piece-color color)
+      (swap! game assoc :active-piece-type piece-type)
+      (cond
+        (= piece-type :square)
+        (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+            (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
+            (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
+            (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1}))
+        (= piece-type :straight)
+        (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+            (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
+            (swap! game assoc-in [:board 2 4] {:color color :active true :x 4 :y 2})
+            (swap! game assoc-in [:board 3 4] {:color color :active true :x 4 :y 3}))
+        (= piece-type :l1)
+        (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+            (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
+            (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
+            (swap! game assoc-in [:board 1 6] {:color color :active true :x 6 :y 1}))
+        (= piece-type :l2)
+        (do (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
+            (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
+            (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
+            (swap! game assoc-in [:board 1 3] {:color color :active true :x 3 :y 1}))))))
+
+(defn remove-actives! []
+  (let [{:keys [board]} @game
+        active-squares (filter #(= (:active %) true) (flatten board))
+        active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)]
+    (loop [xs-ys active-xs-ys]
+      (when (not (empty? xs-ys))
+        (let [x-y (first xs-ys)
+              x (first x-y) y (second x-y)]
+          (do (swap! game assoc-in [:board y x] nil)
+              (recur (rest xs-ys))))))))
+
+(defn place-xs-ys-as-actives! [xs-ys]
+  (do
+    (remove-actives!)
+    (loop [xs-ys xs-ys]
+      (when (not (empty? xs-ys))
+        (let [x-y (first xs-ys) x (first x-y) y (second x-y)]
+          (do (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true :x x :y y})
+              (recur (rest xs-ys))))))))
+
+(defn rotate! []
+  (spyx "rotate!")
+  (let [{:keys [active-piece-type board]} @game
+        new-xs-ys (board->rotated-active-xs-ys active-piece-type board)]
+    (place-xs-ys-as-actives! new-xs-ys)))
 
 (defn start! []
   (do (reset! game game-initial-state)
@@ -59,24 +92,9 @@
 (defn move-piece! [x-fn y-fn]
   (let [{:keys [board]} @game
         active-squares (filter #(= (:active %) true) (flatten board))
-        active-color (:color (first active-squares))
         active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)
         new-active-xs-ys (map (fn [x-y] [(x-fn (first x-y)) (y-fn (second x-y))]) active-xs-ys)]
-    (do
-      ;; remove all active squares
-      (loop [xs-ys active-xs-ys]
-        (when (not (empty? xs-ys))
-          (let [x-y (first xs-ys)
-                x (first x-y) y (second x-y)]
-            (do (swap! game assoc-in [:board y x] nil)
-                (recur (rest xs-ys))))))
-      ;; place new-active squares
-      (loop [xs-ys new-active-xs-ys]
-        (when (not (empty? xs-ys))
-          (let [x-y (first xs-ys)
-                x (first x-y) y (second x-y)]
-            (do (swap! game assoc-in [:board y x] {:color active-color :active true :x x :y y})
-                (recur (rest xs-ys)))))))))
+    (place-xs-ys-as-actives! new-active-xs-ys)))
 
 (defn move-active-piece-down! []
   (move-piece! identity inc))
@@ -109,7 +127,13 @@
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)]
-              (cond (or is-down is-space) (tick!)
+              (cond is-space (if
+                                 (piece-can-rotate-p (:active-piece-type @game) (:board @game))
+                               (do
+                                 (spyx "yes rotate")
+                                 (rotate!))
+                               (spyx "no rotate"))
+                    is-down (tick!)
                     is-left (when (piece-can-move-left-p (:board @game)) (move-left!))
                     is-right (when (piece-can-move-right-p (:board @game) board-width) (move-right!)))))]
     (create-class
