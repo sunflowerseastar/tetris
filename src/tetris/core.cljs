@@ -17,6 +17,7 @@
   (vec (repeat board-height (vec (repeat board-width nil)))))
 
 (def game-initial-state {:state :stopped
+                         :active-piece-type nil
                          :board (generate-board)})
 
 (def game (atom game-initial-state))
@@ -26,22 +27,26 @@
         piece-type (get piece-types (random-up-to (count piece-types)))]
     (cond
       (= piece-type :square)
-      (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+      (do (swap! game assoc :active-piece-type :square)
+          (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
           (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
           (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
           (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1}))
       (= piece-type :straight)
-      (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+      (do (swap! game assoc :active-piece-type :straight)
+          (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
           (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
           (swap! game assoc-in [:board 2 4] {:color color :active true :x 4 :y 2})
           (swap! game assoc-in [:board 3 4] {:color color :active true :x 4 :y 3}))
       (= piece-type :l1)
-      (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+      (do (swap! game assoc :active-piece-type :l1)
+          (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
           (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
           (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
           (swap! game assoc-in [:board 1 6] {:color color :active true :x 6 :y 1}))
       (= piece-type :l2)
-      (do (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
+      (do (swap! game assoc :active-piece-type :l2)
+          (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
           (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
           (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
           (swap! game assoc-in [:board 1 3] {:color color :active true :x 3 :y 1})))))
