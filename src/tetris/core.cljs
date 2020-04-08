@@ -1,7 +1,8 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [tetris.helpers :refer [random-up-to piece-can-move-down-p]]
+   [tetris.helpers :refer [random-up-to piece-can-move-down-p piece-can-move-left-p piece-can-move-right-p]]
    [goog.dom :as gdom]
+   [tupelo.core :refer [spyx]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
 (defn get-app-element []
@@ -31,25 +32,32 @@
       (swap! game assoc :state :running)
       (add-piece!)))
 
-(defn move-active-piece-down! []
+(defn move-piece! [x-fn y-fn]
   (let [{:keys [board]} @game
         active-squares (filter #(= (:active %) true) (flatten board))
         active-color (:color (first active-squares))
         active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)]
     (do (loop [xs-ys active-xs-ys]
-          (if (not (empty? xs-ys))
+          (when (not (empty? xs-ys))
             (let [x-y (first xs-ys)
                   x (first x-y) y (second x-y)]
               (do (swap! game assoc-in [:board y x] {})
                   (recur (rest xs-ys))))))
-        (loop [xs-ys (map (fn [x-y] [(first x-y) (inc (second x-y))]) active-xs-ys)]
-          (if (not (empty? xs-ys))
+        (loop [xs-ys (map (fn [x-y] [(x-fn (first x-y)) (y-fn (second x-y))]) active-xs-ys)] ;; <-- inc y
+          (when (not (empty? xs-ys))
             (let [x-y (first xs-ys)
                   x (first x-y) y (second x-y)]
               (do (swap! game assoc-in [:board y x] {:color active-color :active true :x x :y y})
-                  (recur (rest xs-ys))))))
-        ;; (swap! game assoc :state :stopped)
-        )))
+                  (recur (rest xs-ys)))))))))
+
+(defn move-active-piece-down! []
+  (move-piece! identity inc))
+
+(defn move-right! []
+  (move-piece! inc identity))
+
+(defn move-left! []
+  (move-piece! dec identity))
 
 (defn deactivate-piece! []
   (let [deactivated-board (vec (map (fn [row]
@@ -68,31 +76,41 @@
         (add-piece!)))))
 
 (defn tetris []
-  (create-class
-   {:component-did-mount (fn [] (do
-                                  (start!)
-                                  (js/setInterval #(tick!) 300)))
-    :reagent-render (fn [this]
-                      (let [{:keys [board state]} @game
-                            is-stopped (= state :stopped)]
-                        [:div#app
-                         [:div.tetris
-                          [:div.board-container
-                           [:div.board
-                            (map-indexed
-                             (fn [y row]
-                               (map-indexed
-                                (fn [x square]
-                                  (let [{:keys [color]} square]
-                                    [:div.square
-                                     {:key (str x y)
-                                      :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                              :background color}}
-                                     [:span.piece-container]]))
-                                row))
-                             board)]]
-                          [:div.button-container
-                           [:button {:on-click #(start!)} "start"]]]]))}))
+  (letfn [(keyboard-listeners [e]
+            (let [is-space (= (.-keyCode e) 32)
+                  is-down (= (.-keyCode e) 40)
+                  is-left (= (.-keyCode e) 37)
+                  is-right (= (.-keyCode e) 39)]
+              (cond (or is-down is-space) (tick!)
+                    is-left (when (piece-can-move-left-p (:board @game)) (move-left!))
+                    is-right (when (piece-can-move-right-p (:board @game) board-width) (move-right!)))))]
+    (create-class
+     {:component-did-mount (fn [] (do
+                                    (start!)
+                                    (.addEventListener js/document "keydown" keyboard-listeners)
+                                    ;; (js/setInterval #(tick!) 300)
+                                    ))
+      :reagent-render (fn [this]
+                        (let [{:keys [board state]} @game
+                              is-stopped (= state :stopped)]
+                          [:div#app
+                           [:div.tetris
+                            [:div.board-container
+                             [:div.board
+                              (map-indexed
+                               (fn [y row]
+                                 (map-indexed
+                                  (fn [x square]
+                                    (let [{:keys [color]} square]
+                                      [:div.square
+                                       {:key (str x y)
+                                        :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                                :background color}}
+                                       [:span.piece-container]]))
+                                  row))
+                               board)]]
+                            [:div.button-container
+                             [:button {:on-click #(start!)} "start"]]]]))})))
 
 (defn mount [el]
   (reagent/render-component [tetris] el))
