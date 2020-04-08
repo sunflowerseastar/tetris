@@ -8,10 +8,19 @@
 (defn random-up-to [n]
   (js/parseInt (* (.random js/Math) n)))
 
+(defn square-below [square board]
+  (get-square (:x square) (inc (:y square)) board))
+
+(defn squares-below [board squares]
+  (map #(square-below % board) squares))
+
+(defn not-active-p [square]
+  (not (= (:active square) true)))
+
 (defn some-square-below-are-non-empty-p [squares board]
   (->> squares
-       (map (fn [square] (get-square (:x square) (inc (:y square)) board)))
-       (filter #(not (= (:active %) true)))
+       (squares-below board)
+       (filter not-active-p)
        (map empty?)
        (some false?)))
 
