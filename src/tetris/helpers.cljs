@@ -33,8 +33,9 @@
         max-x (reduce max xs)
         min-x (reduce min xs)
         x-in-bounds (and (>= min-x 0) (< max-x board-width))
+        min-y (reduce min ys)
         max-y (reduce max ys)
-        y-in-bounds (< max-y board-height)]
+        y-in-bounds (and (>= min-y 0) (< max-y board-height))]
     (and x-in-bounds y-in-bounds)))
 
 (defn xs-ys-are-free? [xs-ys board]
@@ -56,19 +57,19 @@
 (defn board->shifted-right-active-xs-ys [board]
   (board->shift inc identity board))
 
-(defn piece-can-move-p [shift-fn board]
+(defn piece-can-move? [shift-fn board]
   (let [new-xs-ys (shift-fn board)
         in-bounds (xs-ys-in-bounds? new-xs-ys board)]
     (and in-bounds (xs-ys-are-free? new-xs-ys board))))
 
-(defn piece-can-move-down-p [board]
-  (piece-can-move-p board->shifted-down-active-xs-ys board))
+(defn piece-can-move-down? [board]
+  (piece-can-move? board->shifted-down-active-xs-ys board))
 
-(defn piece-can-move-left-p [board]
-  (piece-can-move-p board->shifted-left-active-xs-ys board))
+(defn piece-can-move-left? [board]
+  (piece-can-move? board->shifted-left-active-xs-ys board))
 
-(defn piece-can-move-right-p [board]
-  (piece-can-move-p board->shifted-right-active-xs-ys board))
+(defn piece-can-move-right? [board]
+  (piece-can-move? board->shifted-right-active-xs-ys board))
 
 (defn board->rotated-active-xs-ys [piece-type board]
   (let [actives (get-actives board)
@@ -121,7 +122,7 @@
                         new-xs-ys [block-1 block-2 block-3 block-4]]
                     new-xs-ys))))))
 
-(defn piece-can-rotate-p [piece-type board]
+(defn piece-can-rotate? [piece-type board]
   (let [new-xs-ys (board->rotated-active-xs-ys piece-type board)
         in-bounds (xs-ys-in-bounds? new-xs-ys board)]
     (and in-bounds (xs-ys-are-free? new-xs-ys board))))

@@ -5,10 +5,10 @@
                            board->shifted-left-active-xs-ys
                            board->shifted-right-active-xs-ys
                            get-actives
-                           piece-can-move-down-p
-                           piece-can-move-left-p
-                           piece-can-move-right-p
-                           piece-can-rotate-p
+                           piece-can-move-down?
+                           piece-can-move-left?
+                           piece-can-move-right?
+                           piece-can-rotate?
                            random-up-to]]
    [goog.dom :as gdom]
    [tupelo.core :refer [spyx]]
@@ -17,8 +17,7 @@
 (defonce board-width 10)
 (defonce board-height 20)
 (defonce colors [:blue :green :red :orange :yellow :purple])
-;; (defonce piece-types [:square :straight :l1 :l2])
-(defonce piece-types [:square :straight :l1])
+(defonce piece-types [:square :straight :l1 :l2])
 
 (defn generate-board []
   (vec (repeat board-height (vec (repeat board-width nil)))))
@@ -105,7 +104,7 @@
 
 (defn tick! []
   (when (= (@game :state) :running)
-    (if (piece-can-move-down-p (@game :board))
+    (if (piece-can-move-down? (@game :board))
       (move-active-piece-down!)
       (do
         (deactivate-piece!)
@@ -117,12 +116,12 @@
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)]
-              (cond is-space (if (piece-can-rotate-p (:active-piece-type @game) (:board @game))
+              (cond is-space (if (piece-can-rotate? (:active-piece-type @game) (:board @game))
                                (rotate!)
                                (spyx "no rotate"))
                     is-down (tick!)
-                    is-left (when (piece-can-move-left-p (:board @game)) (move-left!))
-                    is-right (when (piece-can-move-right-p (:board @game)) (move-right!)))))]
+                    is-left (when (piece-can-move-left? (:board @game)) (move-left!))
+                    is-right (when (piece-can-move-right? (:board @game)) (move-right!)))))]
     (create-class
      {:component-did-mount (fn [] (do
                                     (start!)
