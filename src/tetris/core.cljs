@@ -11,24 +11,22 @@
    [tupelo.core :refer [spyx]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
-(defn get-app-element []
-  (gdom/getElement "app"))
-
-(def board-width 10)
-(def board-height 20)
-(def colors [:blue :green :red :orange :yellow :purple])
-;; (def piece-types [:square :straight :l1 :l2])
-(def piece-types [:straight :square])
+(defonce board-width 10)
+(defonce board-height 20)
+(defonce colors [:blue :green :red :orange :yellow :purple])
+;; (defonce piece-types [:square :straight :l1 :l2])
+(defonce piece-types [:straight :square])
 
 (defn generate-board []
   (vec (repeat board-height (vec (repeat board-width nil)))))
 
-(def game-initial-state {:state :stopped
+(defonce game-initial-state {:state :stopped
                          :active-piece-type nil
                          :active-piece-color nil
                          :board (generate-board)})
 
-(def game (atom game-initial-state))
+
+(defonce game (atom game-initial-state))
 
 (defn add-piece! []
   (let [color (get colors (random-up-to (count colors)))
@@ -160,14 +158,11 @@
                             [:div.button-container
                              [:button {:on-click #(start!)} "start"]]]]))})))
 
-(defn mount [el]
-  (reagent/render-component [tetris] el))
-
 (defn mount-app-element []
-  (when-let [el (get-app-element)]
-    (mount el)))
+  (when-let [el (gdom/getElement "app")]
+    (reagent/render-component [tetris] el)))
 
-(mount-app-element)
-
-(defn ^:after-load on-reload []
-  (mount-app-element))
+;; https://figwheel.org/docs/hot_reloading.html#re-rendering-ui-after-saving-a-file
+;; (defn ^:after-load re-render []
+;;   (mount-app-element))
+(defonce start-up (do (mount-app-element) true))
