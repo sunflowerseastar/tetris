@@ -30,6 +30,23 @@
 
 (defonce game (atom game-initial-state))
 
+(defn xs-ys->place-actives! [xs-ys]
+  (when (not (empty? xs-ys))
+    (let [x-y (first xs-ys) x (first x-y) y (second x-y)]
+      (do (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true :x x :y y})
+          (xs-ys->place-actives! (rest xs-ys))))))
+
+(defn remove-actives! []
+  (loop [actives (get-actives (:board @game))]
+    (when (not (empty? actives))
+      (let [active (first actives)]
+        (do (swap! game assoc-in [:board (:y active) (:x active)] nil)
+            (recur (rest actives)))))))
+
+(defn xs-ys->update-actives! [xs-ys]
+  (do (remove-actives!)
+      (xs-ys->place-actives! xs-ys)))
+
 (defn add-piece! []
   (let [color (get colors (random-up-to (count colors)))
         piece-type (get piece-types (random-up-to (count piece-types)))]
@@ -73,28 +90,10 @@
               (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1}))
           ))))
 
-(defn remove-actives! []
-  (let [{:keys [board]} @game
-        active-squares (filter #(= (:active %) true) (flatten board))
-        active-xs-ys (map (fn [square] [(:x square) (:y square)]) active-squares)]
-    (loop [xs-ys active-xs-ys]
-      (when (not (empty? xs-ys))
-        (let [x-y (first xs-ys) x (first x-y) y (second x-y)]
-          (do (swap! game assoc-in [:board y x] nil)
-              (recur (rest xs-ys))))))))
-
-(defn place-xs-ys-as-actives! [xs-ys]
-  (do (remove-actives!)
-      (loop [xs-ys xs-ys]
-        (when (not (empty? xs-ys))
-          (let [x-y (first xs-ys) x (first x-y) y (second x-y)]
-            (do (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true :x x :y y})
-                (recur (rest xs-ys))))))))
-
 (defn rotate! []
   (let [{:keys [active-piece-type board]} @game
         new-xs-ys (board->rotated-active-xs-ys active-piece-type board)]
-    (place-xs-ys-as-actives! new-xs-ys)))
+    (xs-ys->update-actives! new-xs-ys)))
 
 (defn start! []
   (do (reset! game game-initial-state)
@@ -102,13 +101,13 @@
       (add-piece!)))
 
 (defn move-active-piece-down! []
-  (place-xs-ys-as-actives! (board->shifted-down-active-xs-ys (:board @game))))
+  (xs-ys->update-actives! (board->shifted-down-active-xs-ys (:board @game))))
 
 (defn move-left! []
-  (place-xs-ys-as-actives! (board->shifted-left-active-xs-ys (:board @game))))
+  (xs-ys->update-actives! (board->shifted-left-active-xs-ys (:board @game))))
 
 (defn move-right! []
-  (place-xs-ys-as-actives! (board->shifted-right-active-xs-ys (:board @game))))
+  (xs-ys->update-actives! (board->shifted-right-active-xs-ys (:board @game))))
 
 (defn deactivate-piece! []
   (let [deactivated-board (vec (map (fn [row]
