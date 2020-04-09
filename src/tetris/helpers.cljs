@@ -2,20 +2,11 @@
   (:require
    [tupelo.core :refer [spyx]]))
 
-(defn get-square [x y board]
-  (-> board (nth y) (nth x)))
-
 (defn random-up-to [n]
   (js/parseInt (* (.random js/Math) n)))
 
-(defn square-below [square board]
-  (get-square (:x square) (inc (:y square)) board))
-
-(defn squares-below [board squares]
-  (map #(square-below % board) squares))
-
-(defn not-active-p [square]
-  (not (= (:active square) true)))
+(defn get-square [x y board]
+  (-> board (nth y) (nth x)))
 
 (defn x-y-in-bounds? [x-y board]
   (let [x (first x-y) y (second x-y)
@@ -28,6 +19,11 @@
     (if (x-y-in-bounds? x-y board)
       (get-square x y board)
       nil)))
+
+(defn get-actives [board]
+  (->> board
+       flatten
+       (filter #(= (:active %) true))))
 
 (defn xs-ys-in-bounds? [xs-ys board]
   (let [board-width (count (first board))
@@ -44,41 +40,35 @@
 (defn xs-ys-are-free? [xs-ys board]
   (->> xs-ys
        (map #(get-x-y board %))
-       (filter not-active-p)
+       (filter #(not (= (:active %) true)))
        (map nil?)
        (every? true?)))
 
-(defn some-square-below-are-non-empty-p [squares board]
-  (->> squares
-       (squares-below board)
-       (filter not-active-p)
-       (map nil?)
-       (some false?)))
+(defn board->shift [x-fn y-fn board]
+  (map (fn [{:keys [x y]}] [(x-fn x) (y-fn y)]) (get-actives board)))
 
-(defn some-square-left-are-non-empty-p [squares board]
-  (->> squares
-       (map (fn [square] (get-square (dec (:x square)) (:y square) board)))
-       (filter #(not (= (:active %) true)))
-       (map nil?)
-       (some false?)))
+(defn board->shifted-down-active-xs-ys [board]
+  (board->shift identity inc board))
 
-(defn some-square-right-are-non-empty-p [squares board]
-  (->> squares
-       (map (fn [square] (get-square (inc (:x square)) (:y square) board)))
-       (filter #(not (= (:active %) true)))
-       (map nil?)
-       (some false?)))
+(defn board->shifted-left-active-xs-ys [board]
+  (board->shift dec identity board))
 
-(defn get-actives [board]
-  (->> board
-       flatten
-       (filter #(= (:active %) true))))
+(defn board->shifted-right-active-xs-ys [board]
+  (board->shift inc identity board))
 
-(defn piece-can-move-down-p [board board-height]
-  (let [actives (get-actives board)
-        max-y (->> actives (map :y) (reduce max))
-        has-reached-bottom-p (>= (inc max-y) board-height)]
-    (and (not has-reached-bottom-p) (not (some-square-below-are-non-empty-p actives board)))))
+(defn piece-can-move-p [shift-fn board]
+  (let [new-xs-ys (shift-fn board)
+        in-bounds (xs-ys-in-bounds? new-xs-ys board)]
+    (and in-bounds (xs-ys-are-free? new-xs-ys board))))
+
+(defn piece-can-move-down-p [board]
+  (piece-can-move-p board->shifted-down-active-xs-ys board))
+
+(defn piece-can-move-left-p [board]
+  (piece-can-move-p board->shifted-left-active-xs-ys board))
+
+(defn piece-can-move-right-p [board]
+  (piece-can-move-p board->shifted-right-active-xs-ys board))
 
 (defn board->rotated-active-xs-ys [piece-type board]
   (let [actives (get-actives board)
@@ -100,21 +90,5 @@
 
 (defn piece-can-rotate-p [piece-type board]
   (let [new-xs-ys (board->rotated-active-xs-ys piece-type board)
-        in-bounds (xs-ys-in-bounds? new-xs-ys board)]
-    (and in-bounds (xs-ys-are-free? new-xs-ys board))))
-
-(defn board->shifted-right-active-xs-ys [board]
-  (map (fn [{:keys [x y]}] [(inc x) y]) (get-actives board)))
-
-(defn piece-can-move-right-p [board]
-  (let [new-xs-ys (board->shifted-right-active-xs-ys board)
-        in-bounds (xs-ys-in-bounds? new-xs-ys board)]
-    (and in-bounds (xs-ys-are-free? new-xs-ys board))))
-
-(defn board->shifted-left-active-xs-ys [board]
-  (map (fn [{:keys [x y]}] [(dec x) y]) (get-actives board)))
-
-(defn piece-can-move-left-p [board]
-  (let [new-xs-ys (board->shifted-left-active-xs-ys board)
         in-bounds (xs-ys-in-bounds? new-xs-ys board)]
     (and in-bounds (xs-ys-are-free? new-xs-ys board))))
