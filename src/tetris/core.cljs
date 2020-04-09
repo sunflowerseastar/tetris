@@ -18,7 +18,7 @@
 (defonce board-height 20)
 (defonce colors [:blue :green :red :orange :yellow :purple])
 ;; (defonce piece-types [:square :straight :l1 :l2])
-(defonce piece-types [:straight :square])
+(defonce piece-types [:square :straight :l1])
 
 (defn generate-board []
   (vec (repeat board-height (vec (repeat board-width nil)))))
