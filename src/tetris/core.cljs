@@ -17,7 +17,7 @@
 (defonce board-width 10)
 (defonce board-height 20)
 (defonce colors [:blue :green :red :orange :yellow :purple])
-(defonce piece-types [:square :straight :l1 :l2])
+(defonce piece-types [:square :straight :s1 :s2 :l1 :l2])
 
 (defn generate-board []
   (vec (repeat board-height (vec (repeat board-width nil)))))
@@ -46,6 +46,16 @@
               (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
               (swap! game assoc-in [:board 2 4] {:color color :active true :x 4 :y 2})
               (swap! game assoc-in [:board 3 4] {:color color :active true :x 4 :y 3}))
+          (= piece-type :s1)
+          (do (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
+              (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
+              (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
+              (swap! game assoc-in [:board 0 6] {:color color :active true :x 6 :y 0}))
+          (= piece-type :s2)
+          (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+              (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
+              (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
+              (swap! game assoc-in [:board 1 6] {:color color :active true :x 6 :y 1}))
           (= piece-type :l1)
           (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
               (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
@@ -55,7 +65,13 @@
           (do (swap! game assoc-in [:board 0 5] {:color color :active true :x 5 :y 0})
               (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1})
               (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
-              (swap! game assoc-in [:board 1 3] {:color color :active true :x 3 :y 1}))))))
+              (swap! game assoc-in [:board 1 3] {:color color :active true :x 3 :y 1}))
+          (= piece-type :t)
+          (do (swap! game assoc-in [:board 0 4] {:color color :active true :x 4 :y 0})
+              (swap! game assoc-in [:board 1 3] {:color color :active true :x 3 :y 1})
+              (swap! game assoc-in [:board 1 4] {:color color :active true :x 4 :y 1})
+              (swap! game assoc-in [:board 1 5] {:color color :active true :x 5 :y 1}))
+          ))))
 
 (defn remove-actives! []
   (let [{:keys [board]} @game
@@ -116,9 +132,8 @@
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)]
-              (cond is-space (if (piece-can-rotate? (:active-piece-type @game) (:board @game))
-                               (rotate!)
-                               (spyx "no rotate"))
+              (cond is-space (when (piece-can-rotate? (:active-piece-type @game) (:board @game))
+                               (rotate!))
                     is-down (tick!)
                     is-left (when (piece-can-move-left? (:board @game)) (move-left!))
                     is-right (when (piece-can-move-right? (:board @game)) (move-right!)))))]
@@ -126,8 +141,7 @@
      {:component-did-mount (fn [] (do
                                     (start!)
                                     (.addEventListener js/document "keydown" keyboard-listeners)
-                                    ;; (js/setInterval #(tick!) 300)
-                                    ))
+                                    (js/setInterval #(tick!) 300)))
       :reagent-render (fn [this]
                         (let [{:keys [board state]} @game
                               is-stopped (= state :stopped)]
