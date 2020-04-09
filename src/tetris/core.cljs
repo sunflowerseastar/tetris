@@ -9,7 +9,8 @@
                            piece-can-move-left?
                            piece-can-move-right?
                            piece-can-rotate?
-                           random-up-to]]
+                           random-up-to
+                           xs-ys-are-free?]]
    [goog.dom :as gdom]
    [tupelo.core :refer [spyx]]
    [reagent.core :as reagent :refer [atom create-class]]))
@@ -25,6 +26,7 @@
 (defonce game-initial-state {:state :stopped
                              :active-piece-type nil
                              :active-piece-color nil
+                             :game-over false
                              :board (generate-board)})
 
 
@@ -47,26 +49,29 @@
   (do (remove-actives!)
       (xs-ys->place-actives! xs-ys)))
 
+(defn get-initial-piece-xs-ys [piece-type]
+  (cond
+    (= piece-type :square) [[4 0] [5 0] [4 1] [5 1]]
+    (= piece-type :straight) [[4 0] [4 1] [4 2] [4 3]]
+    (= piece-type :s1) [[4 1] [5 1] [5 0] [6 0]]
+    (= piece-type :s2) [[4 0] [5 0] [5 1] [6 1]]
+    (= piece-type :l1) [[4 0] [4 1] [5 1] [6 1]]
+    (= piece-type :l2) [[5 0] [5 1] [4 1] [3 1]]
+    (= piece-type :t) [[4 0] [3 1] [4 1] [5 1]]))
+
+(defn end-game! []
+  (do (swap! game assoc :game-over true)
+      (swap! game assoc :state :stopped)))
+
 (defn add-piece! []
   (let [color (get colors (random-up-to (count colors)))
-        piece-type (get piece-types (random-up-to (count piece-types)))]
+        piece-type (get piece-types (random-up-to (count piece-types)))
+        initial-piece-xs-ys (get-initial-piece-xs-ys piece-type)
+        new-piece-overlaps-existing-squares (not (xs-ys-are-free? initial-piece-xs-ys (:board @game)))]
     (do (swap! game assoc :active-piece-color color)
         (swap! game assoc :active-piece-type piece-type)
-        (cond
-          (= piece-type :square)
-          (xs-ys->place-actives! [[4 0] [5 0] [4 1] [5 1]])
-          (= piece-type :straight)
-          (xs-ys->place-actives! [[4 0] [4 1] [4 2] [4 2]])
-          (= piece-type :s1)
-          (xs-ys->place-actives! [[4 1] [5 1] [5 0] [6 0]])
-          (= piece-type :s2)
-          (xs-ys->place-actives! [[4 0] [5 0] [5 1] [6 1]])
-          (= piece-type :l1)
-          (xs-ys->place-actives! [[4 0] [4 1] [5 1] [6 1]])
-          (= piece-type :l2)
-          (xs-ys->place-actives! [[5 0] [5 1] [4 1] [3 1]])
-          (= piece-type :t)
-          (xs-ys->place-actives! [[4 0] [3 1] [4 1] [5 1]])))))
+        (xs-ys->place-actives! initial-piece-xs-ys)
+        (when new-piece-overlaps-existing-squares (end-game!)))))
 
 (defn rotate! []
   (let [{:keys [active-piece-type board]} @game
@@ -108,38 +113,42 @@
             (let [is-space (= (.-keyCode e) 32)
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
-                  is-right (= (.-keyCode e) 39)]
-              (cond is-space (when (piece-can-rotate? (:active-piece-type @game) (:board @game))
-                               (rotate!))
-                    is-down (tick!)
-                    is-left (when (piece-can-move-left? (:board @game)) (move-left!))
-                    is-right (when (piece-can-move-right? (:board @game)) (move-right!)))))]
+                  is-right (= (.-keyCode e) 39)
+                  is-running (= (:state @game) :running)]
+              (cond is-space (if is-running
+                               (when (piece-can-rotate? (:active-piece-type @game) (:board @game))
+                                 (rotate!))
+                               (start!))
+                    is-down (when is-running (tick!))
+                    is-left (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
+                    is-right (when (and is-running (piece-can-move-right? (:board @game))) (move-right!)))))]
     (create-class
-     {:component-did-mount (fn [] (do
-                                    (start!)
-                                    (.addEventListener js/document "keydown" keyboard-listeners)
-                                    (js/setInterval #(tick!) 300)))
-      :reagent-render (fn [this]
-                        (let [{:keys [board state]} @game
-                              is-stopped (= state :stopped)]
-                          [:div#app
-                           [:div.tetris
-                            [:div.board-container
-                             [:div.board
-                              (map-indexed
-                               (fn [y row]
-                                 (map-indexed
-                                  (fn [x square]
-                                    (let [{:keys [color]} square]
-                                      [:div.square
-                                       {:key (str x y)
-                                        :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                                :background color}}
-                                       [:span.piece-container]]))
-                                  row))
-                               board)]]
-                            [:div.button-container
-                             [:button {:on-click #(start!)} "start"]]]]))})))
+     {:component-did-mount
+      (fn [] (do (start!)
+                 (.addEventListener js/document "keydown" keyboard-listeners)
+                 (js/setInterval #(tick!) 300)))
+      :reagent-render
+      (fn [this]
+        (let [{:keys [board state]} @game
+              is-stopped (= state :stopped)]
+          [:div#app
+           [:div.tetris
+            [:div.board-container
+             [:div.board
+              (map-indexed
+               (fn [y row]
+                 (map-indexed
+                  (fn [x square]
+                    (let [{:keys [color]} square]
+                      [:div.square
+                       {:key (str x y)
+                        :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                :background color}}
+                       [:span.piece-container]]))
+                  row))
+               board)]]
+            [:div.button-container
+             [:button {:on-click #(start!)} "start"]]]]))})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
