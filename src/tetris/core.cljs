@@ -79,7 +79,6 @@
               (recur (rest xs-ys))))))))
 
 (defn rotate! []
-  (spyx "rotate!")
   (let [{:keys [active-piece-type board]} @game
         new-xs-ys (board->rotated-active-xs-ys active-piece-type board)]
     (place-xs-ys-as-actives! new-xs-ys)))
@@ -127,15 +126,12 @@
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)]
-              (cond is-space (if
-                                 (piece-can-rotate-p (:active-piece-type @game) (:board @game))
-                               (do
-                                 (spyx "yes rotate")
-                                 (rotate!))
+              (cond is-space (if (piece-can-rotate-p (:active-piece-type @game) (:board @game))
+                               (rotate!)
                                (spyx "no rotate"))
                     is-down (tick!)
                     is-left (when (piece-can-move-left-p (:board @game)) (move-left!))
-                    is-right (when (piece-can-move-right-p (:board @game) board-width) (move-right!)))))]
+                    is-right (when (piece-can-move-right-p (:board @game)) (move-right!)))))]
     (create-class
      {:component-did-mount (fn [] (do
                                     (start!)
