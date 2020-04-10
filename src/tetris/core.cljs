@@ -21,7 +21,7 @@
 
 (defonce board-width 10)
 (defonce board-height 20)
-(defonce colors [:blue :green :red :orange :yellow :purple])
+(defonce colors ["#d8d8d8" "#d0d0ff" "#ffd3ad" "#b1e597" "#b9e5a1" "#ff8c94" "#91cdf2" "#ffe5ee" "#faedb9" "#a8e5dc"])
 (defonce piece-types [:square :straight :s1 :s2 :l1 :l2 :t])
 
 (defonce game-initial-state {:state :stopped
@@ -147,21 +147,25 @@
           [:div#app
            [:div.tetris
             [:div.board-container
-             [:div.board
-              (map-indexed
-               (fn [y row]
-                 (map-indexed
-                  (fn [x square]
-                    (let [{:keys [color]} square]
-                      [:div.square
-                       {:key (str x y)
-                        :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                :background color}}
-                       [:span.piece-container]]))
-                  row))
-               board)]]
-            [:div.button-container
-             [:button {:on-click #(start!)} "start"]]]]))})))
+             [:div.board-container-left
+              [:div.board
+               (map-indexed
+                (fn [y row]
+                  (map-indexed
+                   (fn [x square]
+                     (let [{:keys [color]} square]
+                       [:div.square
+                        {:key (str x y)
+                         :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                 :background color}}
+                        [:span.piece-container]]))
+                   row))
+                board)]]
+             [:div.board-container-right
+              [:p.rows-completed
+               {:style {:color (:active-piece-color @game)}}
+               (:rows-completed @game)]
+              [:p.speed 1]]]]]))})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
