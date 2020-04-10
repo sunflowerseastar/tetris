@@ -1,9 +1,13 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [tetris.helpers :refer [board->rotated-active-xs-ys
+   [tetris.helpers :refer [
+                           board->board-without-completions
+                           board->rotated-active-xs-ys
                            board->shifted-down-active-xs-ys
                            board->shifted-left-active-xs-ys
                            board->shifted-right-active-xs-ys
+                           generate-blank-row
+                           generate-board
                            get-actives
                            piece-can-move-down?
                            piece-can-move-left?
@@ -12,23 +16,20 @@
                            random-up-to
                            xs-ys-are-free?]]
    [goog.dom :as gdom]
-   [tupelo.core :refer [spyx]]
+   [tupelo.core :refer [not-nil? prepend spyx]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
 (defonce board-width 10)
 (defonce board-height 20)
 (defonce colors [:blue :green :red :orange :yellow :purple])
-(defonce piece-types [:square :straight :s1 :s2 :l1 :l2])
-
-(defn generate-board []
-  (vec (repeat board-height (vec (repeat board-width nil)))))
+(defonce piece-types [:square :straight :s1 :s2 :l1 :l2 :t])
 
 (defonce game-initial-state {:state :stopped
                              :active-piece-type nil
                              :active-piece-color nil
                              :game-over false
-                             :board (generate-board)})
-
+                             :rows-completed 0
+                             :board (generate-board board-width board-height)})
 
 (defonce game (atom game-initial-state))
 
@@ -45,19 +46,25 @@
         (do (swap! game assoc-in [:board (:y active) (:x active)] nil)
             (recur (rest actives)))))))
 
-(defn xs-ys->update-actives! [xs-ys]
+(defn xs-ys->replace-actives! [xs-ys]
   (do (remove-actives!)
       (xs-ys->place-actives! xs-ys)))
 
+(defn handle-completed-rows! []
+  (let [[new-board num-completions]
+        (board->board-without-completions (:board @game) board-width)]
+    (when (pos? num-completions)
+      (do (swap! game update :rows-completed inc)
+          (swap! game assoc :board new-board)))))
+
 (defn get-initial-piece-xs-ys [piece-type]
-  (cond
-    (= piece-type :square) [[4 0] [5 0] [4 1] [5 1]]
-    (= piece-type :straight) [[4 0] [4 1] [4 2] [4 3]]
-    (= piece-type :s1) [[4 1] [5 1] [5 0] [6 0]]
-    (= piece-type :s2) [[4 0] [5 0] [5 1] [6 1]]
-    (= piece-type :l1) [[4 0] [4 1] [5 1] [6 1]]
-    (= piece-type :l2) [[5 0] [5 1] [4 1] [3 1]]
-    (= piece-type :t) [[4 0] [3 1] [4 1] [5 1]]))
+  (cond (= piece-type :square) [[4 0] [5 0] [4 1] [5 1]]
+        (= piece-type :straight) [[4 0] [4 1] [4 2] [4 3]]
+        (= piece-type :s1) [[4 1] [5 1] [5 0] [6 0]]
+        (= piece-type :s2) [[4 0] [5 0] [5 1] [6 1]]
+        (= piece-type :l1) [[4 0] [4 1] [5 1] [6 1]]
+        (= piece-type :l2) [[5 0] [5 1] [4 1] [3 1]]
+        (= piece-type :t) [[4 0] [3 1] [4 1] [5 1]]))
 
 (defn end-game! []
   (do (swap! game assoc :game-over true)
@@ -76,7 +83,7 @@
 (defn rotate! []
   (let [{:keys [active-piece-type board]} @game
         new-xs-ys (board->rotated-active-xs-ys active-piece-type board)]
-    (xs-ys->update-actives! new-xs-ys)))
+    (xs-ys->replace-actives! new-xs-ys)))
 
 (defn start! []
   (do (reset! game game-initial-state)
@@ -84,20 +91,25 @@
       (add-piece!)))
 
 (defn move-active-piece-down! []
-  (xs-ys->update-actives! (board->shifted-down-active-xs-ys (:board @game))))
+  (xs-ys->replace-actives!
+   (board->shifted-down-active-xs-ys (:board @game))))
 
 (defn move-left! []
-  (xs-ys->update-actives! (board->shifted-left-active-xs-ys (:board @game))))
+  (xs-ys->replace-actives!
+   (board->shifted-left-active-xs-ys (:board @game))))
 
 (defn move-right! []
-  (xs-ys->update-actives! (board->shifted-right-active-xs-ys (:board @game))))
+  (xs-ys->replace-actives!
+   (board->shifted-right-active-xs-ys (:board @game))))
 
 (defn deactivate-piece! []
-  (let [deactivated-board (vec (map (fn [row]
-                                      (vec (map (fn [sq]
-                                                  (if (:active sq) (assoc sq :active false) sq))
-                                                row)))
-                                    (@game :board)))]
+  (let [deactivated-board
+        (vec (map (fn [row]
+                    (vec (map (fn [sq]
+                                (if (:active sq)
+                                  (assoc sq :active false) sq))
+                              row)))
+                  (@game :board)))]
     (swap! game assoc :board deactivated-board)))
 
 (defn tick! []
@@ -106,6 +118,7 @@
       (move-active-piece-down!)
       (do
         (deactivate-piece!)
+        (handle-completed-rows!)
         (add-piece!)))))
 
 (defn tetris []

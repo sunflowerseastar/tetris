@@ -1,6 +1,22 @@
 (ns tetris.helpers
   (:require
-   [tupelo.core :refer [it-> spyx]]))
+   [tupelo.core :refer [it-> not-nil? prepend spyx]]))
+
+(defn generate-blank-row [width]
+  (vec (repeat width nil)))
+
+(defn generate-board [board-width board-height]
+  (vec (repeat board-height (generate-blank-row board-width))))
+
+(defn board->board-without-completions [board board-width]
+  (let [blank-row (generate-blank-row board-width)]
+    (loop [rows board new-board [] num-rows-completed 0]
+      (if (empty? rows) [new-board num-rows-completed]
+          (let [row (first rows)
+                is-completed (->> row (map not-nil?) (every? true?))]
+            (if is-completed
+              (recur (rest rows) (prepend blank-row new-board) (inc num-rows-completed))
+              (recur (rest rows) (conj new-board row) num-rows-completed)))))))
 
 (defn random-up-to [n]
   (js/parseInt (* (.random js/Math) n)))
