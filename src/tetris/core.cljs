@@ -16,22 +16,56 @@
                            random-up-to
                            xs-ys-are-free?]]
    [goog.dom :as gdom]
-   [tupelo.core :refer [not-nil? prepend spyx]]
+   [tupelo.core :refer [append it-> spyx]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
 (defonce board-width 10)
 (defonce board-height 20)
-(defonce colors ["#d8d8d8" "#d0d0ff" "#ffd3ad" "#b1e597" "#b9e5a1" "#ff8c94" "#91cdf2" "#ffe5ee" "#faedb9" "#a8e5dc"])
+(defonce queue-length 5)
 (defonce piece-types [:square :straight :s1 :s2 :l1 :l2 :t])
+(defonce base-pieces [{:piece-type :square
+                       :color-rgb-hex "#d0d0ff"
+                       :xs-ys [[4 0] [5 0] [4 1] [5 1]]}
+                      {:piece-type :straight
+                       :color-rgb-hex "#ffd3ad"
+                       :xs-ys [[4 0] [4 1] [4 2] [4 3]]}
+                      {:piece-type :s1
+                       :color-rgb-hex "#b1e597"
+                       :xs-ys [[4 1] [5 1] [5 0] [6 0]]}
+                      {:piece-type :s2
+                       :color-rgb-hex "#b9e5a1"
+                       :xs-ys [[4 0] [5 0] [5 1] [6 1]]}
+                      {:piece-type :l1
+                       :color-rgb-hex "#ff8c94"
+                       :xs-ys [[4 0] [4 1] [5 1] [6 1]]}
+                      {:piece-type :l2
+                       :color-rgb-hex "#91cdf2"
+                       :xs-ys [[5 0] [5 1] [4 1] [3 1]]}
+                      {:piece-type :t
+                       :color-rgb-hex "#faedb9"
+                       :xs-ys [[4 0] [3 1] [4 1] [5 1]]}])
+
+(defn random-base-piece []
+  (get base-pieces (random-up-to (count base-pieces))))
+
+(defn generate-piece-queue []
+  (repeatedly queue-length random-base-piece))
 
 (defonce game-initial-state {:state :stopped
                              :active-piece-type nil
                              :active-piece-color nil
                              :game-over true
                              :rows-completed 0
+                             :piece-queue nil
                              :board (generate-board board-width board-height)})
 
 (defonce game (atom game-initial-state))
+
+(defn bq [piece-queue]
+  (it-> piece-queue (drop 1 it) (append it (random-base-piece))))
+
+(defn bump-queue! []
+  (swap! game update :piece-queue bq))
 
 (defn xs-ys->place-actives! [xs-ys]
   (when (not (empty? xs-ys))
@@ -75,13 +109,13 @@
     (swap! game assoc :state (if (= current-state :stopped) :running :stopped))))
 
 (defn add-piece! []
-  (let [color (get colors (random-up-to (count colors)))
-        piece-type (get piece-types (random-up-to (count piece-types)))
-        initial-piece-xs-ys (get-initial-piece-xs-ys piece-type)
-        new-piece-overlaps-existing-squares (not (xs-ys-are-free? initial-piece-xs-ys (:board @game)))]
-    (do (swap! game assoc :active-piece-color color)
+  (let [{:keys [color-rgb-hex piece-type xs-ys]} (first (:piece-queue @game))
+        color color-rgb-hex
+        new-piece-overlaps-existing-squares (not (xs-ys-are-free? xs-ys (:board @game)))]
+    (do (bump-queue!)
+        (swap! game assoc :active-piece-color color)
         (swap! game assoc :active-piece-type piece-type)
-        (xs-ys->place-actives! initial-piece-xs-ys)
+        (xs-ys->place-actives! xs-ys)
         (when new-piece-overlaps-existing-squares (end-game!)))))
 
 (defn rotate! []
@@ -91,6 +125,7 @@
 
 (defn start! []
   (do (reset! game game-initial-state)
+      (swap! game assoc :piece-queue (generate-piece-queue))
       (swap! game assoc :state :running)
       (swap! game assoc :game-over false)
       (add-piece!)))
