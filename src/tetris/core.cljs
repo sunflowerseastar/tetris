@@ -25,28 +25,35 @@
 (defonce piece-types [:square :straight :s1 :s2 :l1 :l2 :t])
 (defonce base-pieces [{:piece-type :square
                        :color-rgb-hex "#d0d0ff"
-                       :xs-ys [[4 0] [5 0] [4 1] [5 1]]}
+                       :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
                       {:piece-type :straight
                        :color-rgb-hex "#ffd3ad"
-                       :xs-ys [[4 0] [4 1] [4 2] [4 3]]}
+                       :xs-ys [[1 0] [1 1] [1 2] [1 3]]}
                       {:piece-type :s1
                        :color-rgb-hex "#b1e597"
-                       :xs-ys [[4 1] [5 1] [5 0] [6 0]]}
+                       :xs-ys [[0 1] [1 1] [1 0] [2 0]]}
                       {:piece-type :s2
                        :color-rgb-hex "#b9e5a1"
-                       :xs-ys [[4 0] [5 0] [5 1] [6 1]]}
+                       :xs-ys [[0 0] [1 0] [1 1] [2 1]]}
                       {:piece-type :l1
                        :color-rgb-hex "#ff8c94"
-                       :xs-ys [[4 0] [4 1] [5 1] [6 1]]}
+                       :xs-ys [[0 0] [0 1] [1 1] [2 1]]}
                       {:piece-type :l2
                        :color-rgb-hex "#91cdf2"
-                       :xs-ys [[5 0] [5 1] [4 1] [3 1]]}
+                       :xs-ys [[2 0] [2 1] [1 1] [0 1]]}
                       {:piece-type :t
                        :color-rgb-hex "#faedb9"
-                       :xs-ys [[4 0] [3 1] [4 1] [5 1]]}])
+                       :xs-ys [[1 0] [0 1] [1 1] [2 1]]}])
+
+(defn pieces->offset-pieces [pieces board-width]
+  (let [offset (-> board-width (quot 2) (- 1))]
+    (letfn [(inc-xs-ys [xs-ys] (map (fn [[x y]] [(+ offset x) y]) xs-ys))]
+      (map #(update % :xs-ys inc-xs-ys) pieces))))
+
+(defonce offset-pieces (vec (pieces->offset-pieces base-pieces board-width)))
 
 (defn random-base-piece []
-  (get base-pieces (random-up-to (count base-pieces))))
+  (get offset-pieces (random-up-to (count base-pieces))))
 
 (defn generate-piece-queue []
   (repeatedly queue-length random-base-piece))
