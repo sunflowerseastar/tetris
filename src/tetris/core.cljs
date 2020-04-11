@@ -27,7 +27,7 @@
 (defonce game-initial-state {:state :stopped
                              :active-piece-type nil
                              :active-piece-color nil
-                             :game-over false
+                             :game-over true
                              :rows-completed 0
                              :board (generate-board board-width board-height)})
 
@@ -70,6 +70,10 @@
   (do (swap! game assoc :game-over true)
       (swap! game assoc :state :stopped)))
 
+(defn pause-game! []
+  (let [current-state (:state @game)]
+    (swap! game assoc :state (if (= current-state :stopped) :running :stopped))))
+
 (defn add-piece! []
   (let [color (get colors (random-up-to (count colors)))
         piece-type (get piece-types (random-up-to (count piece-types)))
@@ -88,6 +92,7 @@
 (defn start! []
   (do (reset! game game-initial-state)
       (swap! game assoc :state :running)
+      (swap! game assoc :game-over false)
       (add-piece!)))
 
 (defn move-active-piece-down! []
@@ -113,7 +118,8 @@
     (swap! game assoc :board deactivated-board)))
 
 (defn tick! []
-  (when (= (@game :state) :running)
+  (when (and (not (@game :game-over))
+             (= (:state @game) :running))
     (if (piece-can-move-down? (@game :board))
       (move-active-piece-down!)
       (do
@@ -127,11 +133,14 @@
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)
-                  is-running (= (:state @game) :running)]
-              (cond is-space (if is-running
-                               (when (piece-can-rotate? (:active-piece-type @game) (:board @game))
-                                 (rotate!))
-                               (start!))
+                  is-p (= (.-keyCode e) 80)
+                  is-running (= (:state @game) :running)
+                  is-game-over (:game-over @game)]
+              (cond is-space (cond
+                               (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game)))
+                               (rotate!)
+                               is-game-over (start!))
+                    is-p (pause-game!)
                     is-down (when is-running (tick!))
                     is-left (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
                     is-right (when (and is-running (piece-can-move-right? (:board @game))) (move-right!)))))]
