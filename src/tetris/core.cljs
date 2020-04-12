@@ -17,6 +17,7 @@
                            xs-ys-are-free?]]
    [goog.dom :as gdom]
    [tupelo.core :refer [append it-> spyx]]
+   [clojure.core.matrix :refer [new-matrix]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
 (defonce board-width 10)
@@ -27,13 +28,13 @@
                        :color-rgb-hex "#d0d0ff"
                        :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
                       {:piece-type :straight
-                       :color-rgb-hex "#ffd3ad"
-                       :xs-ys [[1 0] [1 1] [1 2] [1 3]]}
+                       :color-rgb-hex "#e0be9f"
+                       :xs-ys [[0 0] [0 1] [0 2] [0 3]]}
                       {:piece-type :s1
                        :color-rgb-hex "#b1e597"
                        :xs-ys [[0 1] [1 1] [1 0] [2 0]]}
                       {:piece-type :s2
-                       :color-rgb-hex "#b9e5a1"
+                       :color-rgb-hex "#ffbad1"
                        :xs-ys [[0 0] [1 0] [1 1] [2 1]]}
                       {:piece-type :l1
                        :color-rgb-hex "#ff8c94"
@@ -195,28 +196,49 @@
       (fn [this]
         (let [{:keys [board state]} @game
               is-stopped (= state :stopped)]
-          [:div#app
-           [:div.tetris
-            [:div.board-container
-             [:div.board-container-left
-              [:div.board
-               (map-indexed
-                (fn [y row]
-                  (map-indexed
-                   (fn [x square]
-                     (let [{:keys [color]} square]
-                       [:div.square
-                        {:key (str x y)
-                         :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                 :background color}}
-                        [:span.piece-container]]))
-                   row))
-                board)]]
-             [:div.board-container-right
-              [:p.rows-completed
-               {:style {:color (:active-piece-color @game)}}
-               (:rows-completed @game)]
-              [:p.speed 1]]]]]))})))
+          [:div.tetris
+           [:div.row
+            [:div.left]
+            [:div.center
+             [:div.board
+              (map-indexed
+               (fn [y row]
+                 (map-indexed
+                  (fn [x square]
+                    (let [{:keys [color]} square]
+                      [:div.square
+                       {:key (str x y)
+                        :class [(when (zero? x) "left-edge") (when (zero? y) "top-edge")]
+                        :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                :grid-template-columns "repeat(10, 10%)"
+                                :background color}}]))
+                  row))
+               board)]]
+            [:div.right
+             [:div.board-mini-container
+              [:div.board-mini
+               (let [upcoming-piece (first (:piece-queue @game))
+                     {:keys [color-rgb-hex piece-type]} upcoming-piece
+                     base-xs-ys (->> base-pieces
+                                     (filter #(= (:piece-type %) piece-type))
+                                     first
+                                     :xs-ys)
+                     xs (map first base-xs-ys) ys (map second base-xs-ys)
+                     min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
+                     min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
+                     matrix-for-grid (clojure.core.matrix/new-matrix height-y width-x)]
+                 (map-indexed
+                  (fn [y row]
+                    (map-indexed
+                     (fn [x square]
+                       (let [match (some #{[x y]} base-xs-ys)]
+                         [:div {:key (str x y)
+                                :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                        :background (when match color-rgb-hex)}}]))
+                     row))
+                  matrix-for-grid))]]
+             [:span.rows-completed (:rows-completed @game)]
+             [:span.speed 1]]]]))})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]

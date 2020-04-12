@@ -5,11 +5,8 @@ body {
   font-family: monospace;
   font-weight: bold;
   background: #2a2a2a;
-  color: white;
+  color: #383838;
   font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
-}
-#app {
-  height: 100vh;
 }
 .tetris {
   height: 100vh;
@@ -19,18 +16,23 @@ body {
   padding: 48px 1em 1em;
   box-sizing: border-box;
 }
-.board-container {
+.row {
   flex: 1;
   display: flex;
   justify-content: center;
+  border: 0.5px solid #383838;
+}
+.left {
+  display: none;
 }
 @media (min-width: 768px) {
-  .board-container {
-    padding: 1em 0;
+  .left {
+    display: block;
+    flex: 1;
   }
 }
-.board-container-left {
-  flex: 1;
+.center {
+  flex: 3;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -40,52 +42,62 @@ body {
   align-self: center;
   display: grid;
   width: 100%;
-  max-width: 34vh;
+  max-width: 38vh;
   margin: 0 auto;
-  grid-template-columns: repeat(10, 10%);
-  border: 2px solid #3b3b3b;
-}
-@media (min-width: 480px) {
-  .board {
-    width: 80%;
-  }
-}
-@media (min-width: 768px) {
-  .board {
-    width: 90%;
-    max-width: 42vh;
-  }
+  border: 1.5px solid #383838;
 }
 .square {
-  border: 1px solid #3b3b3b;
+  border-bottom: 0.5px solid #383838;
+  border-left: 0.5px solid #383838;
   position: relative;
-  height: 0;
   padding-bottom: 100%;
 }
-.piece-container {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.square.left-edge {
+  border-left: 0.5px solid #383838;
 }
-.board-container-right {
+.square.top-edge {
+  border-top: 0.5px solid #383838;
+}
+.right {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-.board-container-right p {
   text-align: center;
+  border-left: 0.5px solid #383838;
+}
+.board-mini-container {
+  height: 10vh;
+  display: flex;
+  justify-content: center;
+}
+.board-mini {
+  position: relative;
+  align-self: center;
+  display: grid;
+  border: 2px solid #383838;
+}
+.board-mini > div {
+  width: 15px;
+  height: 15px;
+  border: 0.5px solid #383838;
+}
+@media (min-width: 768px) {
+  .board-mini > div {
+    width: 19px;
+    height: 19px;
+  }
+}
+@media (min-width: 1200px) {
+  .board-mini > div {
+    width: 24px;
+    height: 24px;
+  }
 }
 .rows-completed {
-  font-size: 10vw;
-  color: #666;
+  padding: 9vh 0 15vh;
+  font-size: 46px;
 }
 .speed {
-  font-size: 5vw;
-  color: #3b3b3b;
+  font-size: 18px;
 }

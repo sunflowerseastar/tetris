@@ -105,8 +105,8 @@
                     new-xs-ys (map (fn [y] [new-x y]) new-ys)]
                 new-xs-ys)))
           (= piece-type :s1)
-          (let [max-x (reduce max xs)
-                min-x (reduce min xs)
+          (let [min-x (reduce min xs)
+                max-x (reduce max xs)
                 delta-x (- max-x min-x)
                 is-pos-1 (= delta-x 2)]
             (if is-pos-1
