@@ -18,6 +18,9 @@
               (recur (rest rows) (prepend blank-row new-board) (inc num-rows-completed))
               (recur (rest rows) (conj new-board row) num-rows-completed)))))))
 
+(defn board->board-without-actives [board]
+  (vec (map (fn [row] (vec (map #(if (true? (:active %)) nil %) row))) board)))
+
 (defn random-up-to [n]
   (js/parseInt (* (.random js/Math) n)))
 
@@ -57,7 +60,7 @@
 (defn xs-ys-are-free? [xs-ys board]
   (->> xs-ys
        (map #(get-x-y board %))
-       (filter #(not (= (:active %) true)))
+       (filter #(not (true? (:active %))))
        (map nil?)
        (every? true?)))
 

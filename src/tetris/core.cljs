@@ -1,7 +1,7 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [tetris.helpers :refer [
-                           board->board-without-completions
+   [tetris.helpers :refer [board->board-without-completions
+                           board->board-without-actives
                            board->rotated-active-xs-ys
                            board->shifted-down-active-xs-ys
                            board->shifted-left-active-xs-ys
@@ -23,7 +23,6 @@
 (defonce board-width 10)
 (defonce board-height 20)
 (defonce queue-length 5)
-(defonce piece-types [:square :straight :s1 :s2 :l1 :l2 :t])
 (defonce base-pieces [{:piece-type :square
                        :color-rgb-hex "#d0d0ff"
                        :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
@@ -69,11 +68,8 @@
 
 (defonce game (atom game-initial-state))
 
-(defn bq [piece-queue]
-  (it-> piece-queue (drop 1 it) (append it (random-base-piece))))
-
 (defn bump-queue! []
-  (swap! game update :piece-queue bq))
+  (swap! game update :piece-queue #(it-> % (drop 1 it) (append it (random-base-piece)))))
 
 (defn xs-ys->place-actives! [xs-ys]
   (when (not (empty? xs-ys))
@@ -82,31 +78,19 @@
           (xs-ys->place-actives! (rest xs-ys))))))
 
 (defn remove-actives! []
-  (loop [actives (get-actives (:board @game))]
-    (when (not (empty? actives))
-      (let [active (first actives)]
-        (do (swap! game assoc-in [:board (:y active) (:x active)] nil)
-            (recur (rest actives)))))))
+  (swap! game update :board board->board-without-actives))
 
 (defn xs-ys->replace-actives! [xs-ys]
   (do (remove-actives!)
       (xs-ys->place-actives! xs-ys)))
 
 (defn handle-completed-rows! []
-  (let [[new-board num-completions]
+  (let [[board-without-completions num-completions]
         (board->board-without-completions (:board @game) board-width)]
     (when (pos? num-completions)
-      (do (swap! game update :rows-completed inc)
-          (swap! game assoc :board new-board)))))
-
-(defn get-initial-piece-xs-ys [piece-type]
-  (cond (= piece-type :square) [[4 0] [5 0] [4 1] [5 1]]
-        (= piece-type :straight) [[4 0] [4 1] [4 2] [4 3]]
-        (= piece-type :s1) [[4 1] [5 1] [5 0] [6 0]]
-        (= piece-type :s2) [[4 0] [5 0] [5 1] [6 1]]
-        (= piece-type :l1) [[4 0] [4 1] [5 1] [6 1]]
-        (= piece-type :l2) [[5 0] [5 1] [4 1] [3 1]]
-        (= piece-type :t) [[4 0] [3 1] [4 1] [5 1]]))
+      (do
+        (swap! game update :rows-completed + num-completions)
+        (swap! game assoc :board board-without-completions)))))
 
 (defn end-game! []
   (do (swap! game assoc :game-over true)
