@@ -58,13 +58,15 @@
 (defn generate-piece-queue []
   (repeatedly queue-length random-base-piece))
 
-(defonce game-initial-state {:state :stopped
+(defonce game-initial-state {:is-paused true
                              :active-piece-type nil
                              :active-piece-color nil
                              :game-over true
                              :rows-completed 0
                              :piece-queue nil
                              :board (generate-board board-width board-height)})
+
+(defonce tick-interval (atom 0))
 
 (defonce game (atom game-initial-state))
 
@@ -94,11 +96,8 @@
 
 (defn end-game! []
   (do (swap! game assoc :game-over true)
-      (swap! game assoc :state :stopped)))
-
-(defn pause-game! []
-  (let [current-state (:state @game)]
-    (swap! game assoc :state (if (= current-state :stopped) :running :stopped))))
+      (js/clearInterval @tick-interval)
+      (swap! game assoc :is-paused true)))
 
 (defn add-piece! []
   (let [{:keys [color-rgb-hex piece-type xs-ys]} (first (:piece-queue @game))
@@ -115,12 +114,15 @@
         new-xs-ys (board->rotated-active-xs-ys active-piece-type board)]
     (xs-ys->replace-actives! new-xs-ys)))
 
-(defn start! []
-  (do (reset! game game-initial-state)
-      (swap! game assoc :piece-queue (generate-piece-queue))
-      (swap! game assoc :state :running)
-      (swap! game assoc :game-over false)
-      (add-piece!)))
+(defn deactivate-piece! []
+  (let [deactivated-board
+        (vec (map (fn [row]
+                    (vec (map (fn [sq]
+                                (if (:active sq)
+                                  (assoc sq :active false) sq))
+                              row)))
+                  (:board @game)))]
+    (swap! game assoc :board deactivated-board)))
 
 (defn move-active-piece-down! []
   (xs-ys->replace-actives!
@@ -134,25 +136,33 @@
   (xs-ys->replace-actives!
    (board->shifted-right-active-xs-ys (:board @game))))
 
-(defn deactivate-piece! []
-  (let [deactivated-board
-        (vec (map (fn [row]
-                    (vec (map (fn [sq]
-                                (if (:active sq)
-                                  (assoc sq :active false) sq))
-                              row)))
-                  (@game :board)))]
-    (swap! game assoc :board deactivated-board)))
-
 (defn tick! []
-  (when (and (not (@game :game-over))
-             (= (:state @game) :running))
-    (if (piece-can-move-down? (@game :board))
+  (when (not (:game-over @game))
+    (if (piece-can-move-down? (:board @game))
       (move-active-piece-down!)
-      (do
-        (deactivate-piece!)
-        (handle-completed-rows!)
-        (add-piece!)))))
+      (do (deactivate-piece!)
+          (handle-completed-rows!)
+          (add-piece!)))))
+
+(defn start-tick-interval! []
+  (reset! tick-interval (js/setInterval #(tick!) 200)))
+
+(defn unpause! []
+  (do (start-tick-interval!)
+      (swap! game assoc :is-paused false)))
+
+(defn pause-or-unpause! []
+  (if (:is-paused @game)
+    (unpause!)
+    (do (js/clearInterval @tick-interval)
+        (swap! game assoc :is-paused true))))
+
+(defn start-game! []
+  (do (reset! game game-initial-state)
+      (swap! game assoc :piece-queue (generate-piece-queue))
+      (swap! game assoc :game-over false)
+      (add-piece!)
+      (unpause!)))
 
 (defn tetris []
   (letfn [(keyboard-listeners [e]
@@ -161,68 +171,66 @@
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)
                   is-p (= (.-keyCode e) 80)
-                  is-running (= (:state @game) :running)
-                  is-game-over (:game-over @game)]
-              (cond is-space (cond
-                               (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game)))
-                               (rotate!)
-                               is-game-over (start!))
-                    is-p (pause-game!)
+                  is-paused (:is-paused @game)
+                  is-game-over (:game-over @game)
+                  is-running (and (not is-paused) (not is-game-over))]
+              (cond is-space (if is-game-over (start-game!)
+                                 (when (and (not is-paused)
+                                            (piece-can-rotate? (:active-piece-type @game) (:board @game)))
+                                   (rotate!)))
+                    is-p (when (not is-game-over) (pause-or-unpause!))
                     is-down (when is-running (tick!))
                     is-left (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
                     is-right (when (and is-running (piece-can-move-right? (:board @game))) (move-right!)))))]
     (create-class
      {:component-did-mount
-      (fn [] (do (start!)
-                 (.addEventListener js/document "keydown" keyboard-listeners)
-                 (js/setInterval #(tick!) 300)))
+      (fn [] (do (start-game!)
+                 (.addEventListener js/document "keydown" keyboard-listeners)))
       :reagent-render
       (fn [this]
-        (let [{:keys [board state]} @game
-              is-stopped (= state :stopped)]
-          [:div.tetris
-           [:div.row
-            [:div.left]
-            [:div.center
-             [:div.board
-              (map-indexed
-               (fn [y row]
-                 (map-indexed
-                  (fn [x square]
-                    (let [{:keys [color]} square]
-                      [:div.square
-                       {:key (str x y)
-                        :class [(when (zero? x) "left-edge") (when (zero? y) "top-edge")]
-                        :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                :grid-template-columns "repeat(10, 10%)"
-                                :background color}}]))
-                  row))
-               board)]]
-            [:div.right
-             [:div.board-mini-container
-              [:div.board-mini
-               (let [upcoming-piece (first (:piece-queue @game))
-                     {:keys [color-rgb-hex piece-type]} upcoming-piece
-                     base-xs-ys (->> base-pieces
-                                     (filter #(= (:piece-type %) piece-type))
-                                     first
-                                     :xs-ys)
-                     xs (map first base-xs-ys) ys (map second base-xs-ys)
-                     min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
-                     min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
-                     matrix-for-grid (clojure.core.matrix/new-matrix height-y width-x)]
-                 (map-indexed
-                  (fn [y row]
-                    (map-indexed
-                     (fn [x square]
-                       (let [match (some #{[x y]} base-xs-ys)]
-                         [:div {:key (str x y)
-                                :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                        :background (when match color-rgb-hex)}}]))
-                     row))
-                  matrix-for-grid))]]
-             [:span.rows-completed (:rows-completed @game)]
-             [:span.speed 1]]]]))})))
+        [:div.tetris
+         [:div.row
+          [:div.left]
+          [:div.center
+           [:div.board
+            (map-indexed
+             (fn [y row]
+               (map-indexed
+                (fn [x square]
+                  (let [{:keys [color]} square]
+                    [:div.square
+                     {:key (str x y)
+                      :class [(when (zero? x) "left-edge") (when (zero? y) "top-edge")]
+                      :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                              :grid-template-columns "repeat(10, 10%)"
+                              :background color}}]))
+                row))
+             (:board @game))]]
+          [:div.right
+           [:div.board-mini-container
+            [:div.board-mini
+             (let [upcoming-piece (first (:piece-queue @game))
+                   {:keys [color-rgb-hex piece-type]} upcoming-piece
+                   base-xs-ys (->> base-pieces
+                                   (filter #(= (:piece-type %) piece-type))
+                                   first
+                                   :xs-ys)
+                   xs (map first base-xs-ys) ys (map second base-xs-ys)
+                   min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
+                   min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
+                   matrix-for-grid (clojure.core.matrix/new-matrix height-y width-x)]
+               (map-indexed
+                (fn [y row]
+                  (map-indexed
+                   (fn [x square]
+                     (let [match (some #{[x y]} base-xs-ys)]
+                       [:div {:key (str x y)
+                              :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                      :background (when match color-rgb-hex)}}]))
+                   row))
+                matrix-for-grid))]]
+           [:span.rows-completed (:rows-completed @game)]
+           [:span.speed 1]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
