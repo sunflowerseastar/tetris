@@ -23,6 +23,7 @@
 (defonce board-width 10)
 (defonce board-height 20)
 (defonce queue-length 5)
+(defonce tick-duration-multiplier 0.9)
 (defonce base-pieces [{:piece-type :square
                        :color-rgb-hex "#d0d0ff"
                        :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
@@ -64,6 +65,9 @@
                              :game-over true
                              :rows-completed 0
                              :piece-queue nil
+                             :level 1
+                             :bump-level false
+                             :tick-duration 700
                              :board (generate-board board-width board-height)})
 
 (defonce tick-interval (atom 0))
@@ -88,10 +92,17 @@
 
 (defn handle-completed-rows! []
   (let [[board-without-completions num-completions]
-        (board->board-without-completions (:board @game) board-width)]
+        (board->board-without-completions (:board @game) board-width)
+        rows-completed (:rows-completed @game)
+        is-level-up (not= (quot rows-completed 10) (quot (+ rows-completed num-completions) 10))]
     (when (pos? num-completions)
       (do
         (swap! game update :rows-completed + num-completions)
+        (when is-level-up
+          (swap! game update :level inc)
+          (swap! game update :tick-duration
+                 #(* (reduce * (repeat (:level @game) tick-duration-multiplier)) %))
+          (swap! game assoc :bump-level true))
         (swap! game assoc :board board-without-completions)))))
 
 (defn end-game! []
@@ -142,10 +153,14 @@
       (move-active-piece-down!)
       (do (deactivate-piece!)
           (handle-completed-rows!)
+          (when (:bump-level @game)
+            (do (js/clearInterval @tick-interval)
+                (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game)))
+                (swap! game assoc :bump-level false)))
           (add-piece!)))))
 
 (defn start-tick-interval! []
-  (reset! tick-interval (js/setInterval #(tick!) 200)))
+  (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game))))
 
 (defn unpause! []
   (do (start-tick-interval!)
@@ -218,7 +233,7 @@
                    xs (map first base-xs-ys) ys (map second base-xs-ys)
                    min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
                    min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
-                   matrix-for-grid (clojure.core.matrix/new-matrix height-y width-x)]
+                   matrix-for-grid (new-matrix height-y width-x)]
                (map-indexed
                 (fn [y row]
                   (map-indexed
@@ -229,14 +244,12 @@
                                       :background (when match color-rgb-hex)}}]))
                    row))
                 matrix-for-grid))]]
-           [:span.rows-completed (:rows-completed @game)]
-           [:span.speed 1]]]])})))
+           [:div.rows-completed-container
+            [:span.rows-completed (:rows-completed @game)]]
+           [:span.level (:level @game)]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
     (reagent/render-component [tetris] el)))
 
-;; https://figwheel.org/docs/hot_reloading.html#re-rendering-ui-after-saving-a-file
-;; (defn ^:after-load re-render []
-;;   (mount-app-element))
 (defonce start-up (do (mount-app-element) true))
