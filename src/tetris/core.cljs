@@ -27,7 +27,7 @@
                        :color-rgb-hex "#d0d0ff"
                        :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
                       {:piece-type :straight
-                       :color-rgb-hex "#e0be9f"
+                       :color-rgb-hex "#ffd3ad"
                        :xs-ys [[0 0] [0 1] [0 2] [0 3]]}
                       {:piece-type :s1
                        :color-rgb-hex "#b1e597"
