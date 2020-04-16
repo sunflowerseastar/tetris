@@ -250,3 +250,27 @@
   (let [new-xs-ys (board->rotated-active-xs-ys piece-type board)
         in-bounds (xs-ys-in-bounds? new-xs-ys board)]
     (and in-bounds (xs-ys-are-free? new-xs-ys board))))
+
+(defn indexed
+  "Returns a lazy sequence of [index, item] pairs, where items come
+  from 's' and indexes count up from zero.
+
+  (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
+  [s]
+  (map vector (iterate inc 0) s))
+
+(defn positions
+  "Returns a lazy sequence containing the positions at which pred
+   is true for items in coll."
+  [pred coll]
+  (for [[idx elt] (indexed coll) :when (pred elt)] idx))
+
+(defn board-has-4-in-a-row? [board]
+  (loop [rows (reverse board) col nil num 1]
+    (let [r (first rows)
+          pos (positions nil? r)
+          count-pos (count pos)]
+      (cond (not= count-pos 1) false
+            (and (not (nil? col)) (not= (first pos) col)) false
+            (and (= (first pos) col) (= num 4)) true
+            :else (recur (rest rows) (first pos) (inc num))))))

@@ -1,11 +1,12 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [tetris.helpers :refer [board->board-without-completions
-                           board->board-without-actives
+   [tetris.helpers :refer [board->board-without-actives
+                           board->board-without-completions
                            board->rotated-active-xs-ys
                            board->shifted-down-active-xs-ys
                            board->shifted-left-active-xs-ys
                            board->shifted-right-active-xs-ys
+                           board-has-4-in-a-row?
                            generate-blank-row
                            generate-board
                            get-actives
@@ -22,7 +23,7 @@
 
 (defonce board-width 10)
 (defonce board-height 20)
-(defonce queue-length 5)
+(defonce queue-length 1)
 (defonce tick-duration-multiplier 0.9)
 (defonce base-pieces [{:piece-type :square
                        :color-rgb-hex "#d0d0ff"
@@ -75,7 +76,8 @@
 (defonce game (atom game-initial-state))
 
 (defn bump-queue! []
-  (swap! game update :piece-queue #(it-> % (drop 1 it) (append it (random-base-piece)))))
+  (let [upcoming-piece (if (board-has-4-in-a-row? (:board @game)) (get offset-pieces 1) (random-base-piece))]
+    (swap! game update :piece-queue #(it-> % (drop 1 it) (append it upcoming-piece)))))
 
 (defn xs-ys->place-actives! [xs-ys]
   (when (not (empty? xs-ys))
