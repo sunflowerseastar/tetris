@@ -191,6 +191,7 @@
                   is-right (= (.-keyCode e) 39)
                   is-p (= (.-keyCode e) 80)
                   is-r (= (.-keyCode e) 82)
+                  is-d (= (.-keyCode e) 68)
                   is-paused (:is-paused @game)
                   is-game-over (:game-over @game)
                   is-running (and (not is-paused) (not is-game-over))]
@@ -200,7 +201,7 @@
                                                  (rotate!)))
                     is-up (when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))
                     is-p (when (not is-game-over) (pause-or-unpause!))
-                    is-down (when is-running (tick!))
+                    (or is-d is-down) (when is-running (tick!))
                     is-left (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
                     is-right (when (and is-running (piece-can-move-right? (:board @game))) (move-right!))
                     is-r (do (end-game!) (start-game!)))))]
