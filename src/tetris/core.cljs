@@ -184,6 +184,8 @@
 (defn tetris []
   (letfn [(keyboard-listeners [e]
             (let [is-space (= (.-keyCode e) 32)
+                  is-enter (= (.-keyCode e) 13)
+                  is-up (= (.-keyCode e) 38)
                   is-down (= (.-keyCode e) 40)
                   is-left (= (.-keyCode e) 37)
                   is-right (= (.-keyCode e) 39)
@@ -192,10 +194,11 @@
                   is-paused (:is-paused @game)
                   is-game-over (:game-over @game)
                   is-running (and (not is-paused) (not is-game-over))]
-              (cond is-space (if is-game-over (start-game!)
-                                 (when (and (not is-paused)
-                                            (piece-can-rotate? (:active-piece-type @game) (:board @game)))
-                                   (rotate!)))
+              (cond (or is-enter is-space) (if is-game-over (start-game!)
+                                               (when (and (not is-paused)
+                                                          (piece-can-rotate? (:active-piece-type @game) (:board @game)))
+                                                 (rotate!)))
+                    is-up (when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))
                     is-p (when (not is-game-over) (pause-or-unpause!))
                     is-down (when is-running (tick!))
                     is-left (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
