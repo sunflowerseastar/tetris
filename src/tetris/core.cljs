@@ -1,5 +1,6 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
+   [clojure.math.combinatorics :as combo]
    [tetris.helpers :refer [board->board-without-actives
                            board->board-without-completions
                            board->rotated-active-xs-ys
@@ -21,6 +22,19 @@
    [clojure.core.matrix :refer [new-matrix]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
+(defonce colors {:lavender "#d0d0ff"
+                 :orange "#ffd3ad"
+                 :green "#b1e597"
+                 :pink "#ffbad1"
+                 :red "#ff8c94"
+                 :blue "#91cdf2"
+                 :yellow "#faedb9"})
+
+(def gradient-pair (atom (-> (combo/combinations colors 2) rand-nth)))
+
+(defn bump-gradient-pair! []
+  (reset! gradient-pair (-> (combo/combinations colors 2) rand-nth)))
+
 (defonce has-initially-loaded (atom false))
 
 (defonce board-width 10)
@@ -28,25 +42,25 @@
 (defonce queue-length 1)
 (defonce tick-duration-multiplier 0.9)
 (defonce base-pieces [{:piece-type :square
-                       :color-rgb-hex "#d0d0ff"
+                       :color-rgb-hex (:lavender colors)
                        :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
                       {:piece-type :straight
-                       :color-rgb-hex "#ffd3ad"
+                       :color-rgb-hex (:orange colors)
                        :xs-ys [[0 0] [0 1] [0 2] [0 3]]}
                       {:piece-type :s1
-                       :color-rgb-hex "#b1e597"
+                       :color-rgb-hex (:green colors)
                        :xs-ys [[0 1] [1 1] [1 0] [2 0]]}
                       {:piece-type :s2
-                       :color-rgb-hex "#ffbad1"
+                       :color-rgb-hex (:pink colors)
                        :xs-ys [[0 0] [1 0] [1 1] [2 1]]}
                       {:piece-type :l1
-                       :color-rgb-hex "#ff8c94"
+                       :color-rgb-hex (:red colors)
                        :xs-ys [[0 0] [0 1] [1 1] [2 1]]}
                       {:piece-type :l2
-                       :color-rgb-hex "#91cdf2"
+                       :color-rgb-hex (:blue colors)
                        :xs-ys [[2 0] [2 1] [1 1] [0 1]]}
                       {:piece-type :t
-                       :color-rgb-hex "#faedb9"
+                       :color-rgb-hex (:yellow colors)
                        :xs-ys [[1 0] [0 1] [1 1] [2 1]]}])
 
 (defn pieces->offset-pieces [pieces board-width]
@@ -256,7 +270,14 @@
                    row))
                 matrix-for-grid))]]
            [:div.rows-completed-container.fade-in-2
-            [:span.rows-completed (:rows-completed @game)]]
+            [:span.rows-completed
+             {:style {:background (str "-webkit-linear-gradient(45deg, "
+                                       (-> (first @gradient-pair) val) ", "
+                                       (-> (second @gradient-pair) val) " 80%)")
+                      :backgroundClip "border-box"
+                      :-webkitBackgroundClip "text"
+                      :-webkitTextFillColor "transparent"}}
+             (:rows-completed @game)]]
            [:span.level.fade-in-2 (:level @game)]]]])})))
 
 (defn mount-app-element []

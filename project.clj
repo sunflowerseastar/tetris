@@ -9,6 +9,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.10.520"]
                  [net.mikera/core.matrix "0.62.0"]
+                 [org.clojure/math.combinatorics "0.1.6"]
                  [tupelo "0.9.201"]
                  [reagent "0.8.1"]]
 
