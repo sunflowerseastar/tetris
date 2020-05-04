@@ -110,7 +110,10 @@ body {
 .rows-completed.in {
   opacity: 1;
 }
-.speed {
+.level-completed {
+  position: relative;
+}
+.level {
   font-size: 18px;
 }
 

@@ -279,7 +279,8 @@
                          :-webkitTextFillColor "transparent"}}
                 (:rows-completed @game)])
              gradient-pairs)]
-           [:span.level.fade-in-2 (:level @game)]]]])})))
+           [:div.level-completed
+            [:span.level.fade-in-2 (:level @game)]]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
