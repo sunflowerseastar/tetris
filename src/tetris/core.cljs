@@ -30,10 +30,7 @@
                  :blue "#91cdf2"
                  :yellow "#faedb9"})
 
-(def gradient-pair (atom (-> (combo/combinations colors 2) rand-nth)))
-
-(defn bump-gradient-pair! []
-  (reset! gradient-pair (-> (combo/combinations colors 2) rand-nth)))
+(def gradient-pairs (combo/combinations colors 2))
 
 (defonce has-initially-loaded (atom false))
 
@@ -270,14 +267,18 @@
                    row))
                 matrix-for-grid))]]
            [:div.rows-completed-container.fade-in-2
-            [:span.rows-completed
-             {:style {:background (str "-webkit-linear-gradient(45deg, "
-                                       (-> (first @gradient-pair) val) ", "
-                                       (-> (second @gradient-pair) val) " 80%)")
-                      :backgroundClip "border-box"
-                      :-webkitBackgroundClip "text"
-                      :-webkitTextFillColor "transparent"}}
-             (:rows-completed @game)]]
+            (map-indexed
+             (fn [i gradient-pair]
+               [:span.rows-completed
+                {:class (if (<= i (rem (:rows-completed @game) (count gradient-pairs))) "in")
+                 :style {:background (str "-webkit-linear-gradient(45deg, "
+                                          (-> (first gradient-pair) val) ", "
+                                          (-> (second gradient-pair) val) " 80%)")
+                         :backgroundClip "border-box"
+                         :-webkitBackgroundClip "text"
+                         :-webkitTextFillColor "transparent"}}
+                (:rows-completed @game)])
+             gradient-pairs)]
            [:span.level.fade-in-2 (:level @game)]]]])})))
 
 (defn mount-app-element []

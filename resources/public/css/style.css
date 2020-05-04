@@ -98,9 +98,17 @@ body {
   padding: 9vh 0 15vh;
 }
 .rows-completed {
+  position: absolute;
   padding: 0.2em 0.3em 0.1em;
   font-size: 46px;
   border: 1px solid #383838;
+  transform: translateY(-50%);
+  transform: translateX(-50%);
+  transition: opacity 2.6s ease-in-out;
+  opacity: 0;
+}
+.rows-completed.in {
+  opacity: 1;
 }
 .speed {
   font-size: 18px;
