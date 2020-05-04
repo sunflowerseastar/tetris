@@ -31,6 +31,7 @@
                  :yellow "#faedb9"})
 
 (def gradient-pairs (combo/combinations colors 2))
+(def rows-per-level-up 10)
 
 (defonce has-initially-loaded (atom false))
 
@@ -109,7 +110,7 @@
   (let [[board-without-completions num-completions]
         (board->board-without-completions (:board @game) board-width)
         rows-completed (:rows-completed @game)
-        is-level-up (not= (quot rows-completed 10) (quot (+ rows-completed num-completions) 10))]
+        is-level-up (not= (quot rows-completed rows-per-level-up) (quot (+ rows-completed num-completions) rows-per-level-up))]
     (when (pos? num-completions)
       (do
         (swap! game update :rows-completed + num-completions)
@@ -267,20 +268,27 @@
                    row))
                 matrix-for-grid))]]
            [:div.rows-completed-container.fade-in-2
+            [:span.rows-completed
+             {:style {:background (str "-webkit-linear-gradient(45deg, "
+                                       (-> (first (first gradient-pairs)) val) ", "
+                                       (-> (second (first gradient-pairs)) val) " 80%)")
+                      :backgroundClip "border-box"
+                      :-webkitBackgroundClip "text"
+                      :-webkitTextFillColor "transparent"}}
+             (:rows-completed @game)]]
+           [:div.level-container.fade-in-2
             (map-indexed
              (fn [i gradient-pair]
-               [:span.rows-completed
-                {:class (if (<= i (rem (:rows-completed @game) (count gradient-pairs))) "in")
+               [:span.level
+                {:class (if (<= i (rem (:level @game) (count gradient-pairs))) "in")
                  :style {:background (str "-webkit-linear-gradient(45deg, "
                                           (-> (first gradient-pair) val) ", "
                                           (-> (second gradient-pair) val) " 80%)")
                          :backgroundClip "border-box"
                          :-webkitBackgroundClip "text"
                          :-webkitTextFillColor "transparent"}}
-                (:rows-completed @game)])
-             gradient-pairs)]
-           [:div.level-completed
-            [:span.level.fade-in-2 (:level @game)]]]]])})))
+                (:level @game)])
+             gradient-pairs)]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]

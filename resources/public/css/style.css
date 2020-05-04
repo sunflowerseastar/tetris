@@ -98,23 +98,23 @@ body {
   padding: 9vh 0 15vh;
 }
 .rows-completed {
-  position: absolute;
   padding: 0.2em 0.3em 0.1em;
   font-size: 46px;
   border: 1px solid #383838;
+}
+.level-container {
+  position: relative;
+}
+.level {
+  font-size: 24px;
+  position: absolute;
   transform: translateY(-50%);
   transform: translateX(-50%);
   transition: opacity 2.6s ease-in-out;
   opacity: 0;
 }
-.rows-completed.in {
+.level.in {
   opacity: 1;
-}
-.level-completed {
-  position: relative;
-}
-.level {
-  font-size: 18px;
 }
 
 /* fade */
