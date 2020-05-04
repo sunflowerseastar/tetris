@@ -21,6 +21,8 @@
    [clojure.core.matrix :refer [new-matrix]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
+(defonce has-initially-loaded (atom false))
+
 (defonce board-width 10)
 (defonce board-height 20)
 (defonce queue-length 1)
@@ -208,10 +210,11 @@
     (create-class
      {:component-did-mount
       (fn [] (do (start-game!)
+                 (js/setTimeout #(reset! has-initially-loaded true) 0)
                  (.addEventListener js/document "keydown" keyboard-listeners)))
       :reagent-render
       (fn [this]
-        [:div.tetris
+        [:div.tetris.fade-in-1 {:class [(if @has-initially-loaded "has-initially-loaded")]}
          [:div.row
           [:div.left]
           [:div.center
@@ -252,9 +255,9 @@
                                       :background (when match color-rgb-hex)}}]))
                    row))
                 matrix-for-grid))]]
-           [:div.rows-completed-container
+           [:div.rows-completed-container.fade-in-2
             [:span.rows-completed (:rows-completed @game)]]
-           [:span.level (:level @game)]]]])})))
+           [:span.level.fade-in-2 (:level @game)]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]

@@ -105,3 +105,19 @@ body {
 .speed {
   font-size: 18px;
 }
+
+/* fade */
+
+.fade-in-1 {
+  transition: opacity 2.6s ease-in-out;
+  opacity: 0;
+}
+.fade-in-2 {
+  transition: opacity 6s ease-in-out;
+  opacity: 0;
+}
+.has-initially-loaded,
+.has-initially-loaded .fade-in-1,
+.has-initially-loaded .fade-in-2 {
+  opacity: 1;
+}
