@@ -230,7 +230,7 @@
          [:div.row
           [:div.left]
           [:div.center
-           [:div.board
+           [:div.board {:style {:gridTemplateColumns (str "repeat(" board-width ", " (quot 100 board-width) "%)")}}
             (map-indexed
              (fn [y row]
                (map-indexed
@@ -240,7 +240,6 @@
                      {:key (str x y)
                       :class [(when (zero? x) "left-edge") (when (zero? y) "top-edge")]
                       :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                              :grid-template-columns "repeat(10, 10%)"
                               :background color}}]))
                 row))
              (:board @game))]]
@@ -277,18 +276,20 @@
                       :-webkitTextFillColor "transparent"}}
              (:rows-completed @game)]]
            [:div.level-container.fade-in-2
-            (map-indexed
+            (let [level (:level @game)]
+              (map-indexed
              (fn [i gradient-pair]
                [:span.level
-                {:class (if (<= i (rem (:level @game) (count gradient-pairs))) "in")
+                {:key (str i (-> (first gradient-pair) val))
+                 :class (if (<= i (rem level (count gradient-pairs))) "in")
                  :style {:background (str "-webkit-linear-gradient(45deg, "
                                           (-> (first gradient-pair) val) ", "
                                           (-> (second gradient-pair) val) " 80%)")
                          :backgroundClip "border-box"
                          :-webkitBackgroundClip "text"
                          :-webkitTextFillColor "transparent"}}
-                (:level @game)])
-             gradient-pairs)]]]])})))
+                level])
+             gradient-pairs))]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]

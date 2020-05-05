@@ -2,11 +2,9 @@ body {
   position: fixed;
   width: 100%;
   margin: 0;
-  font-family: monospace;
-  font-weight: bold;
-  background: #2a2a2a;
-  color: #383838;
   font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
+  color: #383838;
+  font-weight: bold;
 }
 .tetris {
   height: 100vh;
@@ -15,6 +13,7 @@ body {
   justify-content: flex-end;
   padding: 1em;
   box-sizing: border-box;
+  background: #2a2a2a;
 }
 .row {
   flex: 1;
@@ -120,7 +119,7 @@ body {
 /* fade */
 
 .fade-in-1 {
-  transition: opacity 2.6s ease-in-out;
+  transition: opacity 1.2s ease-in-out;
   opacity: 0;
 }
 .fade-in-2 {
