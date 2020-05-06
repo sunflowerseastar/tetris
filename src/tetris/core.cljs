@@ -209,6 +209,7 @@
                   is-p (= (.-keyCode e) 80)
                   is-r (= (.-keyCode e) 82)
                   is-d (= (.-keyCode e) 68)
+                  is-n (= (.-keyCode e) 78)
                   is-paused (:is-paused @game)
                   is-game-over (:game-over @game)
                   is-running (and (not is-paused) (not is-game-over))]
@@ -218,6 +219,7 @@
                                                  (rotate!)))
                     is-up (when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))
                     is-p (when (not is-game-over) (pause-or-unpause!))
+                    is-n (when (not is-game-over) (bump-queue!))
                     (or is-d is-down) (when is-running (tick!))
                     is-left (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
                     is-right (when (and is-running (piece-can-move-right? (:board @game))) (move-right!))
@@ -271,6 +273,7 @@
           [:div.right
            [:div.board-mini-container
             [:div.board-mini
+             {:on-click #(when (not (:game-over @game)) (bump-queue!))}
              (let [upcoming-piece (first (:piece-queue @game))
                    {:keys [color-rgb-hex piece-type]} upcoming-piece
                    base-xs-ys (->> base-pieces
