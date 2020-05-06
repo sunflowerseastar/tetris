@@ -40,6 +40,11 @@ body {
   flex-direction: column;
   justify-content: center;
   padding-bottom: 2em;
+  transition: opacity 0.4s ease-in-out;
+  opacity: 1;
+}
+.center.is-paused {
+  opacity: 0.6;
 }
 @media (min-width: 400px) {
   padding-bottom: 0;
@@ -77,6 +82,11 @@ body {
   height: 10vh;
   display: flex;
   justify-content: center;
+  transition: opacity 0.4s ease-in-out;
+  opacity: 1;
+}
+.board-mini-container.is-paused {
+  opacity: 0.6;
 }
 .board-mini {
   position: relative;
@@ -116,6 +126,12 @@ body {
 }
 .level-container {
   position: relative;
+  transition: opacity 0.4s ease-in-out;
+  opacity: 1;
+}
+.level-container.is-paused {
+  position: relative;
+  opacity: 0.6 !important;
 }
 .level {
   font-size: 24px;

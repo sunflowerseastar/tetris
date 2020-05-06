@@ -256,7 +256,7 @@
                :on-touch-end #(js/clearInterval @right-touch-interval)}]]])
          [:div.row
           [:div.left]
-          [:div.center
+          [:div.center {:class (when (:is-paused @game) "is-paused")}
            [:div.board {:style {:gridTemplateColumns (str "repeat(" board-width ", " (quot 100 board-width) "%)")}}
             (map-indexed
              (fn [y row]
@@ -271,7 +271,7 @@
                 row))
              (:board @game))]]
           [:div.right
-           [:div.board-mini-container
+           [:div.board-mini-container {:class (when (:is-paused @game) "is-paused")}
             [:div.board-mini
              {:on-click #(when (not (:game-over @game)) (bump-queue!))}
              (let [upcoming-piece (first (:piece-queue @game))
@@ -305,7 +305,7 @@
                       :-webkitBackgroundClip "text"
                       :-webkitTextFillColor "transparent"}}
              (:rows-completed @game)]]
-           [:div.level-container.fade-in-2
+           [:div.level-container.fade-in-2 {:class (when (:is-paused @game) "is-paused")}
             (let [level (:level @game)]
               (map-indexed
                (fn [i gradient-pair]
