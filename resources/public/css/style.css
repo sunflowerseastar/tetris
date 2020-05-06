@@ -23,8 +23,13 @@ body {
   flex: 1;
   display: flex;
   justify-content: center;
-  border: 0.5px solid #383838;
 }
+@media (min-width: 400px) {
+  .row {
+    border: 0.5px solid #383838;
+  }
+}
+
 .left {
   display: none;
 }
@@ -76,7 +81,11 @@ body {
   flex-direction: column;
   justify-content: center;
   text-align: center;
-  border-left: 0.5px solid #383838;
+}
+@media (min-width: 400px) {
+  .right {
+    border-left: 0.5px solid #383838;
+  }
 }
 .board-mini-container {
   height: 10vh;
