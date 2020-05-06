@@ -7,6 +7,7 @@ body {
   font-weight: bold;
 }
 .tetris {
+  position: relative;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -99,7 +100,12 @@ body {
 .rows-completed {
   padding: 0.2em 0.3em 0.1em;
   font-size: 46px;
+  transition: border 0.2s ease-in-out;
   border: 1px solid #383838;
+  cursor: default;
+}
+.rows-completed.is-paused {
+  border: 1px solid #4a4a4a;
 }
 .level-container {
   position: relative;
@@ -130,4 +136,36 @@ body {
 .has-initially-loaded .fade-in-1,
 .has-initially-loaded .fade-in-2 {
   opacity: 1;
+}
+
+/* hit areas for mobile */
+
+.hit-area-container {
+  position: absolute;
+  flex-direction: column;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+  z-index: 1;
+  display: flex;
+}
+@media (min-width: 768px) {
+  display: none;
+}
+.empty {
+  flex: 3;
+  pointer-events: none;
+}
+.hit-area-up {
+  flex: 1;
+}
+.hit-area-row {
+  display: flex;
+  flex: 1;
+}
+.hit-area-left,
+.hit-area-right,
+.hit-area-down {
+  flex: 1;
 }

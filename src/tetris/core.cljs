@@ -86,6 +86,7 @@
                              :board (generate-board board-width board-height)})
 
 (defonce tick-interval (atom 0))
+(defonce down-touch-interval (atom 0))
 
 (defonce game (atom game-initial-state))
 
@@ -178,6 +179,12 @@
 (defn start-tick-interval! []
   (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game))))
 
+(defn start-down-touch-interval! []
+  (reset! down-touch-interval (js/setInterval #(tick!) 50)))
+
+(defn stop-down-touch-interval! []
+  (js/clearInterval @down-touch-interval))
+
 (defn unpause! []
   (do (start-tick-interval!)
       (swap! game assoc :is-paused false)))
@@ -227,6 +234,16 @@
       :reagent-render
       (fn [this]
         [:div.tetris.fade-in-1 {:class [(if @has-initially-loaded "has-initially-loaded")]}
+         (let [is-paused (:is-paused @game)
+               is-game-over (:game-over @game)
+               is-running (and (not is-paused) (not is-game-over))]
+           [:div.hit-area-container {:on-click #(when (and (not is-running)) (start-game!))}
+            [:div.hit-area-up {:on-click #(when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))}]
+            [:div.hit-area-row
+             [:div.hit-area-left {:on-click #(when (and is-running (piece-can-move-left? (:board @game))) (move-left!))}]
+             [:div.hit-area-down {:on-touch-start #(start-down-touch-interval!)
+                                  :on-touch-end #(stop-down-touch-interval!)}]
+             [:div.hit-area-right {:on-click #(when (and is-running (piece-can-move-right? (:board @game))) (move-right!))}]]])
          [:div.row
           [:div.left]
           [:div.center
@@ -268,7 +285,9 @@
                 matrix-for-grid))]]
            [:div.rows-completed-container.fade-in-2
             [:span.rows-completed
-             {:style {:background (str "-webkit-linear-gradient(45deg, "
+             {:class (when (:is-paused @game) "is-paused")
+              :on-click #(when (not (:game-over @game)) (pause-or-unpause!))
+              :style {:background (str "-webkit-linear-gradient(45deg, "
                                        (-> (first (first gradient-pairs)) val) ", "
                                        (-> (second (first gradient-pairs)) val) " 80%)")
                       :backgroundClip "border-box"
@@ -278,18 +297,18 @@
            [:div.level-container.fade-in-2
             (let [level (:level @game)]
               (map-indexed
-             (fn [i gradient-pair]
-               [:span.level
-                {:key (str i (-> (first gradient-pair) val))
-                 :class (if (<= i (rem level (count gradient-pairs))) "in")
-                 :style {:background (str "-webkit-linear-gradient(45deg, "
-                                          (-> (first gradient-pair) val) ", "
-                                          (-> (second gradient-pair) val) " 80%)")
-                         :backgroundClip "border-box"
-                         :-webkitBackgroundClip "text"
-                         :-webkitTextFillColor "transparent"}}
-                level])
-             gradient-pairs))]]]])})))
+               (fn [i gradient-pair]
+                 [:span.level
+                  {:key (str i (-> (first gradient-pair) val))
+                   :class (if (<= i (rem level (count gradient-pairs))) "in")
+                   :style {:background (str "-webkit-linear-gradient(45deg, "
+                                            (-> (first gradient-pair) val) ", "
+                                            (-> (second gradient-pair) val) " 80%)")
+                           :backgroundClip "border-box"
+                           :-webkitBackgroundClip "text"
+                           :-webkitTextFillColor "transparent"}}
+                  level])
+               gradient-pairs))]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
