@@ -5,6 +5,7 @@ body {
   font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
   color: #383838;
   font-weight: bold;
+  touch-action: manipulation;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
 }
