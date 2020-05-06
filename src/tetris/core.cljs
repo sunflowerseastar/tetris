@@ -306,20 +306,31 @@
                       :-webkitTextFillColor "transparent"}}
              (:rows-completed @game)]]
            [:div.level-container.fade-in-2 {:class (when (:is-paused @game) "is-paused")}
-            (let [level (:level @game)]
-              (map-indexed
-               (fn [i gradient-pair]
-                 [:span.level
-                  {:key (str i (-> (first gradient-pair) val))
-                   :class (if (<= i (rem level (count gradient-pairs))) "in")
-                   :style {:background (str "-webkit-linear-gradient(45deg, "
-                                            (-> (first gradient-pair) val) ", "
-                                            (-> (second gradient-pair) val) " 80%)")
-                           :backgroundClip "border-box"
-                           :-webkitBackgroundClip "text"
-                           :-webkitTextFillColor "transparent"}}
-                  level])
-               gradient-pairs))]]]])})))
+            [:div.level-mobile
+             (let [level (:level @game)]
+               (map-indexed
+                (fn [i gradient-pair]
+                  [:span.level
+                   {:key (str i (-> (first gradient-pair) val))
+                    :class (if (<= i (rem level (count gradient-pairs))) "in")
+                    :style {:color (-> (first gradient-pair) val)}}
+                   level])
+                gradient-pairs))]
+            [:div.level-desktop
+             (let [level (:level @game)]
+               (map-indexed
+                (fn [i gradient-pair]
+                  [:span.level
+                   {:key (str i (-> (first gradient-pair) val))
+                    :class (if (<= i (rem level (count gradient-pairs))) "in")
+                    :style {:background (str "-webkit-linear-gradient(45deg, "
+                                             (-> (first gradient-pair) val) ", "
+                                             (-> (second gradient-pair) val) " 80%)")
+                            :backgroundClip "border-box"
+                            :-webkitBackgroundClip "text"
+                            :-webkitTextFillColor "transparent"}}
+                   level])
+                gradient-pairs))]]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
