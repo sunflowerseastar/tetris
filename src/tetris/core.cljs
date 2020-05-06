@@ -238,7 +238,8 @@
                is-game-over (:game-over @game)
                is-running (and (not is-paused) (not is-game-over))]
            [:div.hit-area-container {:on-click #(when (and (not is-running)) (start-game!))}
-            [:div.hit-area-up {:on-click #(when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))}]
+            [:div.hit-area-row
+             [:div.hit-area-up {:on-click #(when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))}]]
             [:div.hit-area-row
              [:div.hit-area-left {:on-click #(when (and is-running (piece-can-move-left? (:board @game))) (move-left!))}]
              [:div.hit-area-down {:on-touch-start #(start-down-touch-interval!)

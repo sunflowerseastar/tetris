@@ -5,6 +5,8 @@ body {
   font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
   color: #383838;
   font-weight: bold;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 .tetris {
   position: relative;
@@ -36,6 +38,10 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  padding-bottom: 2em;
+}
+@media (min-width: 400px) {
+  padding-bottom: 0;
 }
 .board {
   position: relative;
@@ -149,23 +155,26 @@ body {
   height: 40%;
   z-index: 1;
   display: flex;
+  -webkit-tap-highlight-color: transparent;
 }
 @media (min-width: 768px) {
   display: none;
 }
-.empty {
-  flex: 3;
-  pointer-events: none;
-}
-.hit-area-up {
-  flex: 1;
-}
 .hit-area-row {
   display: flex;
   flex: 1;
+  -webkit-tap-highlight-color: transparent;
 }
+.hit-area-up,
 .hit-area-left,
 .hit-area-right,
 .hit-area-down {
+  -webkit-tap-highlight-color: transparent;
   flex: 1;
+}
+.hit-area-up:active,
+.hit-area-left:active,
+.hit-area-right:active,
+.hit-area-down:active {
+  background: rgba(255, 255, 255, 0.03);
 }
