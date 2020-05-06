@@ -87,6 +87,8 @@
 
 (defonce tick-interval (atom 0))
 (defonce down-touch-interval (atom 0))
+(defonce left-touch-interval (atom 0))
+(defonce right-touch-interval (atom 0))
 
 (defonce game (atom game-initial-state))
 
@@ -179,12 +181,6 @@
 (defn start-tick-interval! []
   (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game))))
 
-(defn start-down-touch-interval! []
-  (reset! down-touch-interval (js/setInterval #(tick!) 50)))
-
-(defn stop-down-touch-interval! []
-  (js/clearInterval @down-touch-interval))
-
 (defn unpause! []
   (do (start-tick-interval!)
       (swap! game assoc :is-paused false)))
@@ -241,10 +237,21 @@
             [:div.hit-area-row
              [:div.hit-area-up {:on-click #(when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))}]]
             [:div.hit-area-row
-             [:div.hit-area-left {:on-click #(when (and is-running (piece-can-move-left? (:board @game))) (move-left!))}]
-             [:div.hit-area-down {:on-touch-start #(start-down-touch-interval!)
-                                  :on-touch-end #(stop-down-touch-interval!)}]
-             [:div.hit-area-right {:on-click #(when (and is-running (piece-can-move-right? (:board @game))) (move-right!))}]]])
+             [:div.hit-area-left
+              {:on-touch-start #(reset! left-touch-interval
+                                        (do
+                                          (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
+                                          (js/setInterval (fn [] (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))) 150)))
+               :on-touch-end #(js/clearInterval @left-touch-interval)}]
+             [:div.hit-area-down
+              {:on-touch-start #(reset! down-touch-interval (js/setInterval (fn [] (tick!)) 50))
+               :on-touch-end #(js/clearInterval @down-touch-interval)}]
+             [:div.hit-area-right
+              {:on-touch-start #(reset! right-touch-interval
+                                        (do
+                                          (when (and is-running (piece-can-move-right? (:board @game))) (move-right!))
+                                          (js/setInterval (fn [] (when (and is-running (piece-can-move-right? (:board @game))) (move-right!))) 150)))
+               :on-touch-end #(js/clearInterval @right-touch-interval)}]]])
          [:div.row
           [:div.left]
           [:div.center
