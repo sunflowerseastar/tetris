@@ -62,8 +62,9 @@
                        :xs-ys [[1 0] [0 1] [1 1] [2 1]]}])
 
 (defn pieces->offset-pieces [pieces board-width]
-  (let [offset (-> board-width (quot 2) (- 1))]
-    (letfn [(inc-xs-ys [xs-ys] (map (fn [[x y]] [(+ offset x) y]) xs-ys))]
+  (let [x-offset (-> board-width (quot 2) (- 1))
+        static-y-offset 1]
+    (letfn [(inc-xs-ys [xs-ys] (map (fn [[x y]] [(+ x-offset x) (+ static-y-offset y)]) xs-ys))]
       (map #(update % :xs-ys inc-xs-ys) pieces))))
 
 (defonce offset-pieces (vec (pieces->offset-pieces base-pieces board-width)))
