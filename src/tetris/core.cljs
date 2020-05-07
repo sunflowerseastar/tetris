@@ -53,13 +53,13 @@
                        :xs-ys [[0 0] [1 0] [1 1] [2 1]]}
                       {:piece-type :l1
                        :color-rgb-hex (:red colors)
+                       :xs-ys [[0 0] [1 0] [2 0] [2 1]]}
                       {:piece-type :l2
                        :color-rgb-hex (:blue colors)
-                       :xs-ys [[2 0] [2 1] [1 1] [0 1]]}
+                       :xs-ys [[0 0] [1 0] [2 0] [0 1]]}
                       {:piece-type :t
                        :color-rgb-hex (:yellow colors)
                        :xs-ys [[1 0] [0 1] [1 1] [2 1]]}])
-                       :xs-ys [[0 0] [1 0] [2 0] [2 1]]}
 
 (defn pieces->offset-pieces [pieces board-width]
   (let [x-offset (-> board-width (quot 2) (- 1))

@@ -181,36 +181,36 @@
                     new-xs-ys [block-1 block-2 block-3 block-4]]
                 new-xs-ys)))
           (= piece-type :l2)
-          (let [min-x (reduce min xs)
-                is-pos-1 (apply = [(second ys) (nth ys 2) (nth ys 3)])
-                is-pos-2 (= (count (filter #(= % min-x) xs)) 3)
-                is-pos-3 (apply = [(first ys) (second ys) (nth ys 2)])]
+          (let [max-x (reduce max xs)
+                is-pos-1 (apply = [(first ys) (second ys) (nth ys 2)])
+                is-pos-2 (= (count (filter #(= % max-x) xs)) 3)
+                is-pos-3 (apply = [(second ys) (nth ys 2) (nth ys 3)])]
             (cond is-pos-1
-                  (let [block-1 (it-> actives (first it) [(dec (:x it)) (dec (:y it))])
-                        block-2 (it-> actives (first it) [(dec (:x it)) (:y it)])
-                        block-3 (it-> actives (nth it 2) [(:x it) (:y it)])
-                        block-4 (it-> actives (nth it 3) [(:x it) (:y it)])
+                  (let [block-1 (it-> actives (first it) [(:x it) (dec (:y it))])
+                        block-2 (it-> actives (second it) [(:x it) (dec (:y it))])
+                        block-3 (it-> actives (second it) [(:x it) (:y it)])
+                        block-4 (it-> actives (second it) [(:x it) (inc (:y it))])
                         new-xs-ys [block-1 block-2 block-3 block-4]]
                     new-xs-ys)
                   is-pos-2
-                  (let [block-1 (it-> actives (second it) [(:x it) (:y it)])
-                        block-2 (it-> actives (second it) [(inc (:x it)) (:y it)])
-                        block-3 (it-> actives (second it) [(+ 2 (:x it)) (:y it)])
-                        block-4 (it-> actives (nth it 2) [(:x it) (:y it)])
+                  (let [block-1 (it-> actives (first it) [(:x it) (inc (:y it))])
+                        block-2 (it-> actives (nth it 2) [(:x it) (:y it)])
+                        block-3 (it-> actives (nth it 2) [(inc (:x it)) (:y it)])
+                        block-4 (it-> actives (second it) [(inc (:x it)) (:y it)])
                         new-xs-ys [block-1 block-2 block-3 block-4]]
                     new-xs-ys)
                   is-pos-3
-                  (let [block-1 (it-> actives (first it) [(:x it) (:y it)])
-                        block-2 (it-> actives (second it) [(:x it) (:y it)])
-                        block-3 (it-> actives (second it) [(:x it) (inc (:y it))])
-                        block-4 (it-> actives (second it) [(:x it) (+ 2 (:y it))])
+                  (let [block-1 (it-> actives (first it) [(dec (:x it)) (:y it)])
+                        block-2 (it-> actives (nth it 2) [(:x it) (:y it)])
+                        block-3 (it-> actives (nth it 2) [(:x it) (inc (:y it))])
+                        block-4 (it-> actives (nth it 3) [(:x it) (inc (:y it))])
                         new-xs-ys [block-1 block-2 block-3 block-4]]
                     new-xs-ys)
                   :else
-                  (let [block-1 (it-> actives (second it) [(:x it) (:y it)])
-                        block-2 (it-> actives (first it) [(dec (:x it)) (inc (:y it))])
-                        block-3 (it-> actives (first it) [(:x it) (inc (:y it))])
-                        block-4 (it-> actives (nth it 2) [(:x it) (:y it)])
+                  (let [block-1 (it-> actives (second it) [(dec (:x it)) (:y it)])
+                        block-2 (it-> actives (second it) [(:x it) (:y it)])
+                        block-3 (it-> actives (second it) [(inc (:x it)) (:y it)])
+                        block-4 (it-> actives (nth it 2) [(dec (:x it)) (:y it)])
                         new-xs-ys [block-1 block-2 block-3 block-4]]
                     new-xs-ys)))
           (= piece-type :t)
