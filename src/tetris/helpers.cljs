@@ -214,38 +214,39 @@
                         new-xs-ys [block-1 block-2 block-3 block-4]]
                     new-xs-ys)))
           (= piece-type :t)
-          (let [is-pos-1 (apply = [(second ys) (nth ys 2) (nth ys 3)])
+          (let [is-pos-1 (apply = [(first ys) (second ys) (nth ys 2)])
                 is-pos-2 (apply = [(first xs) (second xs) (nth xs 3)])
-                is-pos-3 (apply = [(first ys) (second ys) (nth ys 2)])]
-            (cond is-pos-1
-                  (let [
-                        block-1 (it-> actives (first it) [(:x it) (:y it)])
-                        block-2 (it-> actives (nth it 2) [(:x it) (:y it)])
-                        block-3 (it-> actives (nth it 3) [(:x it) (:y it)])
-                        block-4 (it-> actives (nth it 2) [(:x it) (inc (:y it))])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)
-                  is-pos-2
-                  (let [block-1 (it-> actives (second it) [(dec (:x it)) (:y it)])
-                        block-2 (it-> actives (second it) [(:x it) (:y it)])
-                        block-3 (it-> actives (nth it 2) [(:x it) (:y it)])
-                        block-4 (it-> actives (second it) [(:x it) (inc (:y it))])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)
-                  is-pos-3
-                  (let [block-1 (it-> actives (second it) [(:x it) (dec (:y it))])
-                        block-2 (it-> actives (first it) [(:x it) (:y it)])
-                        block-3 (it-> actives (second it) [(:x it) (:y it)])
-                        block-4 (it-> actives (nth it 3) [(:x it) (:y it)])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)
-                  :else
-                  (let [block-1 (it-> actives (first it) [(:x it) (:y it)])
-                        block-2 (it-> actives (second it) [(:x it) (:y it)])
-                        block-3 (it-> actives (nth it 2) [(:x it) (:y it)])
-                        block-4 (it-> actives (nth it 2) [(inc (:x it)) (:y it)])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys))))))
+                is-pos-3 (apply = [(second ys) (nth ys 2) (nth ys 3)])]
+            (cond
+              is-pos-1
+              (let [block-1 (it-> actives (second it) [(:x it) (dec (:y it))])
+                    block-2 (it-> actives (first it) [(:x it) (:y it)])
+                    block-3 (it-> actives (second it) [(:x it) (:y it)])
+                    block-4 (it-> actives (nth it 3) [(:x it) (:y it)])
+                    new-xs-ys [block-1 block-2 block-3 block-4]]
+                new-xs-ys)
+              is-pos-2
+              (let [block-1 (it-> actives (second it) [(dec (:x it)) (:y it)])
+                    block-2 (it-> actives (second it) [(:x it) (:y it)])
+                    block-3 (it-> actives (nth it 2) [(:x it) (:y it)])
+                    block-4 (it-> actives (second it) [(:x it) (inc (:y it))])
+                    new-xs-ys [block-1 block-2 block-3 block-4]]
+                new-xs-ys)
+              is-pos-3
+              (let [
+                    block-1 (it-> actives (first it) [(:x it) (:y it)])
+                    block-2 (it-> actives (nth it 2) [(:x it) (:y it)])
+                    block-3 (it-> actives (nth it 3) [(:x it) (:y it)])
+                    block-4 (it-> actives (nth it 2) [(:x it) (inc (:y it))])
+                    new-xs-ys [block-1 block-2 block-3 block-4]]
+                new-xs-ys)
+              :else
+              (let [block-1 (it-> actives (first it) [(:x it) (:y it)])
+                    block-2 (it-> actives (second it) [(:x it) (:y it)])
+                    block-3 (it-> actives (nth it 2) [(:x it) (:y it)])
+                    block-4 (it-> actives (nth it 2) [(inc (:x it)) (:y it)])
+                    new-xs-ys [block-1 block-2 block-3 block-4]]
+                new-xs-ys))))))
 
 (defn piece-can-rotate? [piece-type board]
   (let [new-xs-ys (board->rotated-active-xs-ys piece-type board)
