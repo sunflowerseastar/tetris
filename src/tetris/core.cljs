@@ -262,7 +262,8 @@
                :on-touch-end #(js/clearInterval @right-touch-interval)}]]])
          [:div.row
           [:div.left]
-          [:div.center {:class (when (:is-paused @game) "is-paused")}
+          [:div.center {:class [(when (:is-paused @game) "is-paused")
+                                (when (:game-over @game) "game-over")]}
            [:div.board {:style {:gridTemplateColumns (str "repeat(" board-width ", " (quot 100 board-width) "%)")}}
             (map-indexed
              (fn [y row]
