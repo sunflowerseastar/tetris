@@ -36,6 +36,7 @@
 (defonce has-initially-loaded (atom false))
 
 (defonce board-width 10)
+(defonce board-y-negative-offset 2)
 (defonce board-height 20)
 (defonce queue-length 1)
 (defonce tick-duration-multiplier 0.9)
@@ -63,7 +64,7 @@
 
 (defn pieces->offset-pieces [pieces board-width]
   (let [x-offset (-> board-width (quot 2) (- 1))
-        static-y-offset 2]
+        static-y-offset board-y-negative-offset]
     (letfn [(add-offsets [xs-ys x-offset-adjusted]
               (map (fn [[x y]] [(+ x-offset-adjusted x) (+ static-y-offset y)]) xs-ys))]
       (map #(if (= (:piece-type %) :straight)
@@ -88,7 +89,7 @@
                              :level 1
                              :bump-level false
                              :tick-duration 700
-                             :board (generate-board board-width board-height)})
+                             :board (generate-board board-width (+ board-height board-y-negative-offset))})
 
 (defonce tick-interval (atom 0))
 (defonce down-touch-interval (atom 0))
@@ -274,7 +275,7 @@
                       :style {:grid-column (+ x 1) :grid-row (+ y 1)
                               :background color}}]))
                 row))
-             (:board @game))]]
+             (drop board-y-negative-offset (:board @game)))]]
           [:div.right
            [:div.board-mini-container {:class (when (:is-paused @game) "is-paused")}
             [:div.board-mini
