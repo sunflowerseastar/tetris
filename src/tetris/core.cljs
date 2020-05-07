@@ -44,7 +44,7 @@
                        :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
                       {:piece-type :straight
                        :color-rgb-hex (:orange colors)
-                       :xs-ys [[0 0] [0 1] [0 2] [0 3]]}
+                       :xs-ys [[0 0] [1 0] [2 0] [3 0]]}
                       {:piece-type :s1
                        :color-rgb-hex (:green colors)
                        :xs-ys [[0 1] [1 1] [1 0] [2 0]]}
@@ -63,7 +63,7 @@
 
 (defn pieces->offset-pieces [pieces board-width]
   (let [x-offset (-> board-width (quot 2) (- 1))
-        static-y-offset 1]
+        static-y-offset 2]
     (letfn [(add-offsets [xs-ys x-offset-adjusted]
               (map (fn [[x y]] [(+ x-offset-adjusted x) (+ static-y-offset y)]) xs-ys))]
       (map #(if (= (:piece-type %) :straight)

@@ -98,12 +98,12 @@
           (= piece-type :straight)
           (let [is-vertical (apply = xs)]
             (if is-vertical
-              (let [new-y (second ys)
+              (let [new-y (nth ys 2)
                     new-xs (map #(+ (- (first xs) 1) %) [0 1 2 3])
                     new-xs-ys (map (fn [x] [x new-y]) new-xs)]
                 new-xs-ys)
               (let [new-x (second xs)
-                    starting-y (dec (first ys))
+                    starting-y (- (first ys) 2)
                     new-ys (range starting-y (+ starting-y 4))
                     new-xs-ys (map (fn [y] [new-x y]) new-ys)]
                 new-xs-ys)))
