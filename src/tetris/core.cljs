@@ -64,8 +64,12 @@
 (defn pieces->offset-pieces [pieces board-width]
   (let [x-offset (-> board-width (quot 2) (- 1))
         static-y-offset 1]
-    (letfn [(inc-xs-ys [xs-ys] (map (fn [[x y]] [(+ x-offset x) (+ static-y-offset y)]) xs-ys))]
-      (map #(update % :xs-ys inc-xs-ys) pieces))))
+    (letfn [(add-offsets [xs-ys x-offset-adjusted]
+              (map (fn [[x y]] [(+ x-offset-adjusted x) (+ static-y-offset y)]) xs-ys))]
+      (map #(if (= (:piece-type %) :straight)
+              (update % :xs-ys add-offsets (dec x-offset))
+              (update % :xs-ys add-offsets x-offset))
+           pieces))))
 
 (defonce offset-pieces (vec (pieces->offset-pieces base-pieces board-width)))
 
