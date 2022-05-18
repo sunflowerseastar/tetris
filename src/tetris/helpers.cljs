@@ -21,6 +21,7 @@
 (defn board->board-without-actives [board]
   (vec (map (fn [row] (vec (map #(if (true? (:active %)) nil %) row))) board)))
 
+;; TODO rand-int
 (defn random-up-to [n]
   (js/parseInt (* (.random js/Math) n)))
 
@@ -33,6 +34,7 @@
         y-in-bounds (and (>= y 0) (< y (count board)))]
     (and x-in-bounds y-in-bounds)))
 
+;; TODO clean up
 (defn get-x-y [board x-y]
   (let [x (first x-y) y (second x-y)]
     (if (x-y-in-bounds? x-y board)
@@ -90,6 +92,7 @@
 (defn piece-can-move-right? [board]
   (piece-can-move? board->shifted-right-active-xs-ys board))
 
+;; TODO rewrite - this is terrible
 (defn board->rotated-active-xs-ys [piece-type board]
   (let [actives (get-actives board)
         xs (map :x actives)
@@ -267,6 +270,7 @@
   [pred coll]
   (for [[idx elt] (indexed coll) :when (pred elt)] idx))
 
+;; TODO rewrite
 (defn board-has-4-in-a-row? [board]
   (loop [rows (reverse board) col nil num 1]
     (let [r (first rows)

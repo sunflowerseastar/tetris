@@ -1,8 +1,8 @@
-(defproject tetris "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+(defproject tetris "0.2.0"
+  :description "Tetris in Reagent"
+  :url "https://github.com/sunflowerseastar/tetris"
+  :license {:name "GNU Affero General Public License v3"
+            :url "http://www.gnu.org/licenses/agpl-3.0.html"}
 
   :min-lein-version "2.7.1"
 

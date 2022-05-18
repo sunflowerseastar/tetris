@@ -188,6 +188,7 @@ body {
 
 /* hit areas for mobile */
 
+/* TODO make these more visible, and/or add settings for it */
 .hit-area-container {
   position: absolute;
   flex-direction: column;

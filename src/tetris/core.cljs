@@ -204,6 +204,7 @@
       (add-piece!)
       (unpause!)))
 
+;; TODO componentize
 (defn tetris []
   (letfn [(keyboard-listeners [e]
             (let [is-space (= (.-keyCode e) 32)
@@ -249,6 +250,7 @@
               {:on-touch-start #(reset! left-touch-interval
                                         (do
                                           (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))
+                                          ;; TODO improve the hold-and-move timing (make it wait for a sec, then start going - a bit faster than prev setting)
                                           (js/setInterval (fn [] (when (and is-running (piece-can-move-left? (:board @game))) (move-left!))) 150)))
                :on-touch-end #(js/clearInterval @left-touch-interval)}]
              [:div.hit-area-down
