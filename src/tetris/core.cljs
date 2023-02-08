@@ -1,16 +1,15 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
-   [clojure.math.combinatorics :as combo]
    [tetris.components :refer [board
                               level-component
                               rows-completed-component
                               upcoming-piece-component]]
    [tetris.helpers :refer [board->board-without-actives
                            board->board-without-completions
-                           board->rotated-active-xs-ys
-                           board->shifted-down-active-xs-ys
-                           board->shifted-left-active-xs-ys
-                           board->shifted-right-active-xs-ys
+                           board->rotated-active-xys
+                           board->shifted-down-active-xys
+                           board->shifted-left-active-xys
+                           board->shifted-right-active-xys
                            board-has-4-in-a-row?
                            generate-board
                            piece-can-move-down?
@@ -30,7 +29,6 @@
                  :blue "#91cdf2"
                  :yellow "#faedb9"})
 
-(def gradient-pairs (combo/combinations colors 2))
 (def rows-per-level-up 10)
 
 (defonce has-initially-loaded (atom false))
@@ -145,7 +143,7 @@
 
 (defn rotate! []
   (let [{:keys [active-piece-type board]} @game
-        new-xs-ys (board->rotated-active-xs-ys active-piece-type board)]
+        new-xs-ys (board->rotated-active-xys active-piece-type board)]
     (xs-ys->replace-actives! new-xs-ys)))
 
 (defn deactivate-piece! []
@@ -160,15 +158,15 @@
 
 (defn move-active-piece-down! []
   (xs-ys->replace-actives!
-   (board->shifted-down-active-xs-ys (:board @game))))
+   (board->shifted-down-active-xys (:board @game))))
 
 (defn move-left! []
   (xs-ys->replace-actives!
-   (board->shifted-left-active-xs-ys (:board @game))))
+   (board->shifted-left-active-xys (:board @game))))
 
 (defn move-right! []
   (xs-ys->replace-actives!
-   (board->shifted-right-active-xs-ys (:board @game))))
+   (board->shifted-right-active-xys (:board @game))))
 
 (defn tick! []
   (when (not (:game-over @game))
@@ -269,10 +267,10 @@
           [:div.meta-container
            [:div.upcoming-piece-container {:class (when (:is-paused @game) "is-paused")}
             [upcoming-piece-component game bump-queue! base-pieces]]
-           [:div.rows-completed-container.fade-in-2
-            [rows-completed-component game bump-queue! gradient-pairs]]
-           [:div.level-container.fade-in-2 {:class (when (:is-paused @game) "is-paused")}
-            [level-component (:level @game) gradient-pairs]]]]])})))
+           [:div.rows-completed-container
+            [rows-completed-component game bump-queue!]]
+           [:div.level-container {:class (when (:is-paused @game) "is-paused")}
+            [level-component (:level @game)]]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]

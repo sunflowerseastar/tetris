@@ -35,46 +35,17 @@
         (map-indexed
          (fn [x]
            (let [match (some #{[x y]} base-xs-ys)]
-             [:div {:key (str x y)
-                    :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                            :background (when match color-rgb-hex)}}]))
+             [:div.upcoming-piece-square {:key (str x y)
+                                          :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                                                  :background (when match color-rgb-hex)}}]))
          row))
       matrix-for-grid))])
 
-(defn rows-completed-component [game pause-or-unpause! gradient-pairs]
+(defn rows-completed-component [game pause-or-unpause!]
   [:span.rows-completed
    {:class (when (:is-paused @game) "is-paused")
-    :on-click #(when (not (:game-over @game)) (pause-or-unpause!))
-    :style {:background (str "-webkit-linear-gradient(45deg, "
-                             (-> (first (first gradient-pairs)) val) ", "
-                             (-> (second (first gradient-pairs)) val) " 80%)")
-            :backgroundClip "border-box"
-            :-webkitBackgroundClip "text"
-            :-webkitTextFillColor "transparent"}}
+    :on-click #(when (not (:game-over @game)) (pause-or-unpause!))}
    (:rows-completed @game)])
 
-(defn level-component [level gradient-pairs]
-  [:<>
-   [:div.level-mobile
-    (map-indexed
-     (fn [i gradient-pair]
-       [:span.level
-        {:key (str i (-> (first gradient-pair) val))
-         :class (if (<= i (rem level (count gradient-pairs))) "in")
-         :style {:color (-> (first gradient-pair) val)}}
-        level])
-     gradient-pairs)]
-   [:div.level-desktop
-    (map-indexed
-     (fn [i gradient-pair]
-       [:span.level
-        {:key (str i (-> (first gradient-pair) val))
-         :class (if (<= i (rem level (count gradient-pairs))) "in")
-         :style {:background (str "-webkit-linear-gradient(45deg, "
-                                  (-> (first gradient-pair) val) ", "
-                                  (-> (second gradient-pair) val) " 80%)")
-                 :backgroundClip "border-box"
-                 :-webkitBackgroundClip "text"
-                 :-webkitTextFillColor "transparent"}}
-        level])
-     gradient-pairs)]])
+(defn level-component [level]
+  [:span.level level])

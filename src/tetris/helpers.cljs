@@ -55,41 +55,60 @@
         y-in-bounds (and (>= min-y 0) (< max-y board-height))]
     (and x-in-bounds y-in-bounds)))
 
-(defn xs-ys-are-free? [xs-ys board]
-  (->> xs-ys
+(defn xs-ys-are-free?
+  "Given the shifted xy's of an active piece and a board, return boolean of
+  whether all of those squares are unoccupied."
+  [shifted-active-xys board]
+  (->> shifted-active-xys
+       ;; get the current board squares of the shifted xy's
        (map #(get-x-y board %))
+       ;; ignore the active pieces, so it'll either be nil or an inactive piece
        (filter #(not (true? (:active %))))
-       (map nil?)
-       (every? true?)))
+       ;; return whether all these squares are empty
+       (every? nil?)))
 
-(defn board->shift [x-fn y-fn board]
+(defn board->shift
+  "Given an shift function for x, an shift function for y, and a board,
+  return a board with the x's and y's of all the active pieces adjusted. For
+  example, to move all the active pieces to the left, the x-fn would be dec and
+  the y-fn would be identity."
+  [x-fn y-fn board]
   (map (fn [{:keys [x y]}] [(x-fn x) (y-fn y)]) (get-actives board)))
 
-(defn board->shifted-down-active-xs-ys [board]
+(defn board->shifted-down-active-xys
+  "Given a board, return the xy's of the active piece shifted down one square. The
+  following two functions do the same thing for shifting left & right."
+  [board]
   (board->shift identity inc board))
 
-(defn board->shifted-left-active-xs-ys [board]
+(defn board->shifted-left-active-xys [board]
   (board->shift dec identity board))
 
-(defn board->shifted-right-active-xs-ys [board]
+(defn board->shifted-right-active-xys [board]
   (board->shift inc identity board))
 
-(defn piece-can-move? [shift-fn board]
-  (let [new-xs-ys (shift-fn board)
-        in-bounds (xs-ys-in-bounds? new-xs-ys board)]
-    (and in-bounds (xs-ys-are-free? new-xs-ys board))))
+(defn are-shifted-active-xys-in-bounds-and-free?
+  "Given the xy's of a shifted active piece and a board, return a boolean whether
+  it's a legal shift or not. The following three functions use this to see if
+  the active piece can shift down, left, and right."
+  [shifted-active-xys board]
+  (and (xs-ys-in-bounds? shifted-active-xys board)
+       (xs-ys-are-free? shifted-active-xys board)))
 
 (defn piece-can-move-down? [board]
-  (piece-can-move? board->shifted-down-active-xs-ys board))
+  (are-shifted-active-xys-in-bounds-and-free?
+   (board->shifted-down-active-xys board) board))
 
 (defn piece-can-move-left? [board]
-  (piece-can-move? board->shifted-left-active-xs-ys board))
+  (are-shifted-active-xys-in-bounds-and-free?
+   (board->shifted-left-active-xys board) board))
 
 (defn piece-can-move-right? [board]
-  (piece-can-move? board->shifted-right-active-xs-ys board))
+  (are-shifted-active-xys-in-bounds-and-free?
+   (board->shifted-right-active-xys board) board))
 
 ;; TODO rewrite - this is terrible
-(defn board->rotated-active-xs-ys [piece-type board]
+(defn board->rotated-active-xys [piece-type board]
   (let [actives (get-actives board)
         xs (map :x actives)
         ys (map :y actives)]
@@ -248,7 +267,7 @@
                 new-xs-ys))))))
 
 (defn piece-can-rotate? [piece-type board]
-  (let [new-xs-ys (board->rotated-active-xs-ys piece-type board)
+  (let [new-xs-ys (board->rotated-active-xys piece-type board)
         in-bounds (xs-ys-in-bounds? new-xs-ys board)]
     (and in-bounds (xs-ys-are-free? new-xs-ys board))))
 

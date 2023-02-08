@@ -123,7 +123,6 @@ meta
   height: 10vh;
   display: flex;
   justify-content: center;
-  transition: var(--transition-medium);
   opacity: 1;
 }
 .upcoming-piece-container.is-paused {
@@ -158,45 +157,23 @@ meta
 .rows-completed {
   padding: 0.2em 0.3em 0.1em;
   font-size: 46px;
-  transition: var(--transition-fast);
-  border: 1px solid var(--black-2);
+  color: white;
   cursor: default;
-}
-.rows-completed.is-paused {
-  border: 1px solid #4a4a4a;
 }
 .level-container {
   position: relative;
-  transition: var(--transition-medium);
   opacity: 1;
 }
 .level-container.is-paused {
   position: relative;
   opacity: 0.65 !important;
 }
-@media (min-width: 400px) {
-  .level-mobile {
-    display: none;
-  }
-}
-.level-desktop {
-  display: none;
-}
-@media (min-width: 400px) {
-  .level-desktop {
-    display: block;
-  }
-}
 .level {
   font-size: 24px;
+  color: white;
   position: absolute;
   transform: translateY(-50%);
   transform: translateX(-50%);
-  transition: var(--transition-slow);
-  opacity: 0;
-}
-.level.in {
-  opacity: 1;
 }
 
 /* hit areas for mobile */

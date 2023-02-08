@@ -1,1 +1,9 @@
 * Tetris
+
+#+begin_src sh
+lein fig:build # dev - localhost:9500
+# http://localhost:9500/figwheel-extra-main/auto-testing
+
+lein fig:min   # build
+lein fig:test  # test
+#+end_src
