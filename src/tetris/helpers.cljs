@@ -21,10 +21,6 @@
 (defn board->board-without-actives [board]
   (vec (map (fn [row] (vec (map #(if (true? (:active %)) nil %) row))) board)))
 
-;; TODO rand-int
-(defn random-up-to [n]
-  (js/parseInt (* (.random js/Math) n)))
-
 (defn get-square [x y board]
   (-> board (nth y) (nth x)))
 

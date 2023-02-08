@@ -1,6 +1,10 @@
 (ns ^:figwheel-hooks tetris.core
   (:require
    [clojure.math.combinatorics :as combo]
+   [tetris.components :refer [board
+                              level-component
+                              rows-completed-component
+                              upcoming-piece-component]]
    [tetris.helpers :refer [board->board-without-actives
                            board->board-without-completions
                            board->rotated-active-xs-ys
@@ -8,18 +12,14 @@
                            board->shifted-left-active-xs-ys
                            board->shifted-right-active-xs-ys
                            board-has-4-in-a-row?
-                           generate-blank-row
                            generate-board
-                           get-actives
                            piece-can-move-down?
                            piece-can-move-left?
                            piece-can-move-right?
                            piece-can-rotate?
-                           random-up-to
                            xs-ys-are-free?]]
    [goog.dom :as gdom]
-   [tupelo.core :refer [append it-> spyx]]
-   [clojure.core.matrix :refer [new-matrix]]
+   [tupelo.core :refer [append it->]]
    [reagent.core :as reagent :refer [atom create-class]]))
 
 (defonce colors {:lavender "#d0d0ff"
@@ -67,18 +67,15 @@
         static-y-offset board-y-negative-offset]
     (letfn [(add-offsets [xs-ys x-offset-adjusted]
               (map (fn [[x y]] [(+ x-offset-adjusted x) (+ static-y-offset y)]) xs-ys))]
-      (map #(if (= (:piece-type %) :straight)
-              (update % :xs-ys add-offsets (dec x-offset))
-              (update % :xs-ys add-offsets x-offset))
-           pieces))))
+      (mapv #(if (= (:piece-type %) :straight)
+               (update % :xs-ys add-offsets (dec x-offset))
+               (update % :xs-ys add-offsets x-offset))
+            pieces))))
 
-(defonce offset-pieces (vec (pieces->offset-pieces base-pieces board-width)))
-
-(defn random-base-piece []
-  (get offset-pieces (random-up-to (count base-pieces))))
+(defonce offset-pieces (pieces->offset-pieces base-pieces board-width))
 
 (defn generate-piece-queue []
-  (repeatedly queue-length random-base-piece))
+  (repeatedly queue-length #(rand-nth offset-pieces)))
 
 (defonce game-initial-state {:is-paused true
                              :active-piece-type nil
@@ -99,21 +96,23 @@
 (defonce game (atom game-initial-state))
 
 (defn bump-queue! []
-  (let [upcoming-piece (if (board-has-4-in-a-row? (:board @game)) (get offset-pieces 1) (random-base-piece))]
+  (let [upcoming-piece (if (board-has-4-in-a-row? (:board @game))
+                         (get offset-pieces 1)
+                         (rand-nth offset-pieces))]
     (swap! game update :piece-queue #(it-> % (drop 1 it) (append it upcoming-piece)))))
 
 (defn xs-ys->place-actives! [xs-ys]
-  (when (not (empty? xs-ys))
+  (when (seq xs-ys)
     (let [x-y (first xs-ys) x (first x-y) y (second x-y)]
-      (do (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true :x x :y y})
-          (xs-ys->place-actives! (rest xs-ys))))))
+      (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true :x x :y y})
+      (xs-ys->place-actives! (rest xs-ys)))))
 
 (defn remove-actives! []
   (swap! game update :board board->board-without-actives))
 
 (defn xs-ys->replace-actives! [xs-ys]
-  (do (remove-actives!)
-      (xs-ys->place-actives! xs-ys)))
+  (remove-actives!)
+  (xs-ys->place-actives! xs-ys))
 
 (defn handle-completed-rows! []
   (let [[board-without-completions num-completions]
@@ -121,29 +120,28 @@
         rows-completed (:rows-completed @game)
         is-level-up (not= (quot rows-completed rows-per-level-up) (quot (+ rows-completed num-completions) rows-per-level-up))]
     (when (pos? num-completions)
-      (do
-        (swap! game update :rows-completed + num-completions)
-        (when is-level-up
-          (swap! game update :level inc)
-          (swap! game update :tick-duration
-                 #(* (reduce * (repeat (:level @game) tick-duration-multiplier)) %))
-          (swap! game assoc :bump-level true))
-        (swap! game assoc :board board-without-completions)))))
+      (swap! game update :rows-completed + num-completions)
+      (when is-level-up
+        (swap! game update :level inc)
+        (swap! game update :tick-duration
+               #(* (reduce * (repeat (:level @game) tick-duration-multiplier)) %))
+        (swap! game assoc :bump-level true))
+      (swap! game assoc :board board-without-completions))))
 
 (defn end-game! []
-  (do (swap! game assoc :game-over true)
-      (js/clearInterval @tick-interval)
-      (swap! game assoc :is-paused true)))
+  (swap! game assoc :game-over true)
+  (js/clearInterval @tick-interval)
+  (swap! game assoc :is-paused true))
 
 (defn add-piece! []
   (let [{:keys [color-rgb-hex piece-type xs-ys]} (first (:piece-queue @game))
         color color-rgb-hex
         new-piece-overlaps-existing-squares (not (xs-ys-are-free? xs-ys (:board @game)))]
-    (do (bump-queue!)
-        (swap! game assoc :active-piece-color color)
-        (swap! game assoc :active-piece-type piece-type)
-        (xs-ys->place-actives! xs-ys)
-        (when new-piece-overlaps-existing-squares (end-game!)))))
+    (bump-queue!)
+    (swap! game assoc :active-piece-color color)
+    (swap! game assoc :active-piece-type piece-type)
+    (xs-ys->place-actives! xs-ys)
+    (when new-piece-overlaps-existing-squares (end-game!))))
 
 (defn rotate! []
   (let [{:keys [active-piece-type board]} @game
@@ -179,17 +177,17 @@
       (do (deactivate-piece!)
           (handle-completed-rows!)
           (when (:bump-level @game)
-            (do (js/clearInterval @tick-interval)
-                (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game)))
-                (swap! game assoc :bump-level false)))
+            (js/clearInterval @tick-interval)
+            (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game)))
+            (swap! game assoc :bump-level false))
           (add-piece!)))))
 
 (defn start-tick-interval! []
   (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game))))
 
 (defn unpause! []
-  (do (start-tick-interval!)
-      (swap! game assoc :is-paused false)))
+  (start-tick-interval!)
+  (swap! game assoc :is-paused false))
 
 (defn pause-or-unpause! []
   (if (:is-paused @game)
@@ -198,13 +196,12 @@
         (swap! game assoc :is-paused true))))
 
 (defn start-game! []
-  (do (reset! game game-initial-state)
-      (swap! game assoc :piece-queue (generate-piece-queue))
-      (swap! game assoc :game-over false)
-      (add-piece!)
-      (unpause!)))
+  (reset! game game-initial-state)
+  (swap! game assoc :piece-queue (generate-piece-queue))
+  (swap! game assoc :game-over false)
+  (add-piece!)
+  (unpause!))
 
-;; TODO componentize
 (defn tetris []
   (letfn [(keyboard-listeners [e]
             (let [is-space (= (.-keyCode e) 32)
@@ -237,8 +234,9 @@
                  (js/setTimeout #(reset! has-initially-loaded true) 0)
                  (.addEventListener js/document "keydown" keyboard-listeners)))
       :reagent-render
-      (fn [this]
-        [:div.tetris.fade-in-1 {:class [(if @has-initially-loaded "has-initially-loaded")]}
+      (fn []
+        [:div.main.fade-in-1 {:class [(if @has-initially-loaded "has-initially-loaded")]}
+         ;; hit area overlay
          (let [is-paused (:is-paused @game)
                is-game-over (:game-over @game)
                is-running (and (not is-paused) (not is-game-over))]
@@ -262,84 +260,19 @@
                                           (when (and is-running (piece-can-move-right? (:board @game))) (move-right!))
                                           (js/setInterval (fn [] (when (and is-running (piece-can-move-right? (:board @game))) (move-right!))) 150)))
                :on-touch-end #(js/clearInterval @right-touch-interval)}]]])
-         [:div.row
-          [:div.left]
-          [:div.center {:class [(when (:is-paused @game) "is-paused")
-                                (when (:game-over @game) "game-over")]}
-           [:div.board {:style {:gridTemplateColumns (str "repeat(" board-width ", " (quot 100 board-width) "%)")}}
-            (map-indexed
-             (fn [y row]
-               (map-indexed
-                (fn [x square]
-                  (let [{:keys [color]} square]
-                    [:div.square
-                     {:key (str x y)
-                      :class [(when (zero? x) "left-edge") (when (zero? y) "top-edge")]
-                      :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                              :background color}}]))
-                row))
-             (drop board-y-negative-offset (:board @game)))]]
-          [:div.right
-           [:div.board-mini-container {:class (when (:is-paused @game) "is-paused")}
-            [:div.board-mini
-             {:on-click #(when (not (:game-over @game)) (bump-queue!))}
-             (let [upcoming-piece (first (:piece-queue @game))
-                   {:keys [color-rgb-hex piece-type]} upcoming-piece
-                   base-xs-ys (->> base-pieces
-                                   (filter #(= (:piece-type %) piece-type))
-                                   first
-                                   :xs-ys)
-                   xs (map first base-xs-ys) ys (map second base-xs-ys)
-                   min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
-                   min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
-                   matrix-for-grid (new-matrix height-y width-x)]
-               (map-indexed
-                (fn [y row]
-                  (map-indexed
-                   (fn [x square]
-                     (let [match (some #{[x y]} base-xs-ys)]
-                       [:div {:key (str x y)
-                              :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                      :background (when match color-rgb-hex)}}]))
-                   row))
-                matrix-for-grid))]]
+
+         ;; gameplay area
+         [:div.gameplay-container
+          [:div.board-container {:class [(when (:is-paused @game) "is-paused")
+                                         (when (:game-over @game) "game-over")]}
+           [board board-width game board-y-negative-offset]]
+          [:div.meta-container
+           [:div.upcoming-piece-container {:class (when (:is-paused @game) "is-paused")}
+            [upcoming-piece-component game bump-queue! base-pieces]]
            [:div.rows-completed-container.fade-in-2
-            [:span.rows-completed
-             {:class (when (:is-paused @game) "is-paused")
-              :on-click #(when (not (:game-over @game)) (pause-or-unpause!))
-              :style {:background (str "-webkit-linear-gradient(45deg, "
-                                       (-> (first (first gradient-pairs)) val) ", "
-                                       (-> (second (first gradient-pairs)) val) " 80%)")
-                      :backgroundClip "border-box"
-                      :-webkitBackgroundClip "text"
-                      :-webkitTextFillColor "transparent"}}
-             (:rows-completed @game)]]
+            [rows-completed-component game bump-queue! gradient-pairs]]
            [:div.level-container.fade-in-2 {:class (when (:is-paused @game) "is-paused")}
-            [:div.level-mobile
-             (let [level (:level @game)]
-               (map-indexed
-                (fn [i gradient-pair]
-                  [:span.level
-                   {:key (str i (-> (first gradient-pair) val))
-                    :class (if (<= i (rem level (count gradient-pairs))) "in")
-                    :style {:color (-> (first gradient-pair) val)}}
-                   level])
-                gradient-pairs))]
-            [:div.level-desktop
-             (let [level (:level @game)]
-               (map-indexed
-                (fn [i gradient-pair]
-                  [:span.level
-                   {:key (str i (-> (first gradient-pair) val))
-                    :class (if (<= i (rem level (count gradient-pairs))) "in")
-                    :style {:background (str "-webkit-linear-gradient(45deg, "
-                                             (-> (first gradient-pair) val) ", "
-                                             (-> (second gradient-pair) val) " 80%)")
-                            :backgroundClip "border-box"
-                            :-webkitBackgroundClip "text"
-                            :-webkitTextFillColor "transparent"}}
-                   level])
-                gradient-pairs))]]]]])})))
+            [level-component (:level @game) gradient-pairs]]]]])})))
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
