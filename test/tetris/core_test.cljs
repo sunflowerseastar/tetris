@@ -51,10 +51,7 @@
          [[nil nil] [nil nil] [nil nil]])))
 
 (deftest get-square-test
-  (is (= (helpers/get-square 1 3 sample-board-1) {:color "#91cdf2", :active true, :x 1, :y 3})))
-
-(deftest get-x-y-test
-  (is (= (helpers/get-x-y sample-board-1 [1 3]) {:color "#91cdf2", :active true, :x 1, :y 3})))
+  (is (= (helpers/get-square sample-board-1 [1 3]) {:color "#91cdf2", :active true, :x 1, :y 3})))
 
 (deftest get-actives-test
   (is (= (helpers/get-actives sample-board-1)

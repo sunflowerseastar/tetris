@@ -148,12 +148,12 @@
 
 (defn deactivate-piece! []
   (let [deactivated-board
-        (vec (map (fn [row]
-                    (vec (map (fn [sq]
-                                (if (:active sq)
-                                  (assoc sq :active false) sq))
-                              row)))
-                  (:board @game)))]
+        (mapv (fn [row]
+                (mapv (fn [sq]
+                        (if (:active sq)
+                          (assoc sq :active false) sq))
+                      row))
+              (:board @game))]
     (swap! game assoc :board deactivated-board)))
 
 (defn move-active-piece-down! []

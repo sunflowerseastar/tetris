@@ -19,10 +19,7 @@
               (recur (rest rows) (conj new-board row) num-rows-completed)))))))
 
 (defn board->board-without-actives [board]
-  (vec (map (fn [row] (vec (map #(if (true? (:active %)) nil %) row))) board)))
-
-(defn get-square [x y board]
-  (-> board (nth y) (nth x)))
+  (mapv (fn [row] (mapv #(if (true? (:active %)) nil %) row)) board))
 
 (defn x-y-in-bounds? [x-y board]
   (let [x (first x-y) y (second x-y)
@@ -30,12 +27,10 @@
         y-in-bounds (and (>= y 0) (< y (count board)))]
     (and x-in-bounds y-in-bounds)))
 
-;; TODO clean up
-(defn get-x-y [board x-y]
-  (let [x (first x-y) y (second x-y)]
-    (if (x-y-in-bounds? x-y board)
-      (get-square x y board)
-      nil)))
+(defn get-square [board x-y]
+  (if (x-y-in-bounds? x-y board)
+    (-> board (nth (second x-y)) (nth (first x-y)))
+    nil))
 
 (defn get-actives [board]
   (->> board
@@ -61,7 +56,7 @@
   [shifted-active-xys board]
   (->> shifted-active-xys
        ;; get the current board squares of the shifted xy's
-       (map #(get-x-y board %))
+       (map #(get-square board %))
        ;; ignore the active pieces, so it'll either be nil or an inactive piece
        (filter #(not (true? (:active %))))
        ;; return whether all these squares are empty
