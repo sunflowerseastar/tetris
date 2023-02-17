@@ -21,6 +21,7 @@
 (defn board->board-without-actives [board]
   (mapv (fn [row] (mapv #(if (true? (:active %)) nil %) row)) board))
 
+;; TODO refactor x-y and xys to coordinates?
 (defn x-y-in-bounds? [x-y board]
   (let [x (first x-y) y (second x-y)
         x-in-bounds (and (>= x 0) (< x (count (first board))))
@@ -91,6 +92,10 @@
        (xs-ys-are-free? shifted-active-xys board)))
 
 (defn piece-can-move-down? [board]
+  (are-shifted-active-xys-in-bounds-and-free?
+   (board->shifted-down-active-xys board) board))
+
+(defn piece-can-move-down-2? [board]
   (are-shifted-active-xys-in-bounds-and-free?
    (board->shifted-down-active-xys board) board))
 
