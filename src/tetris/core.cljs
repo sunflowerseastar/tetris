@@ -7,14 +7,15 @@
    [tetris.helpers :refer [active-piece-game-state->active-piece-xys
                            board->board-without-actives
                            board->board-without-completions
-                           board->rotated-active-xys
-                           ;; board-has-4-in-a-row?
+                           board-has-4-in-a-row?
+                           cycle-rotation-index
                            generate-board
                            piece-matrix->xys
                            piece-can-move-down?
                            piece-can-move-left?
                            piece-can-move-right?
                            piece-can-rotate?
+                           rotate
                            shift-piece-matrix-down
                            shift-piece-matrix-left
                            shift-piece-matrix-right
@@ -41,33 +42,16 @@
 (def board-height 20)
 (def queue-length 1)
 (def tick-duration-multiplier 0.9)
-;; TODO rename pieces to tetronimos?
-(def base-pieces [{:piece-type :square
-                   :color-rgb-hex (:lavender colors)
-                   :xs-ys [[0 0] [1 0] [0 1] [1 1]]}
-                  {:piece-type :straight
-                   :color-rgb-hex (:orange colors)
-                   :xs-ys [[0 0] [1 0] [2 0] [3 0]]}
-                  {:piece-type :s1
-                   :color-rgb-hex (:green colors)
-                   :xs-ys [[0 1] [1 1] [1 0] [2 0]]}
-                  {:piece-type :s2
-                   :color-rgb-hex (:pink colors)
-                   :xs-ys [[0 0] [1 0] [1 1] [2 1]]}
-                  {:piece-type :l1
-                   :color-rgb-hex (:red colors)
-                   :xs-ys [[0 0] [1 0] [2 0] [2 1]]}
-                  {:piece-type :l2
-                   :color-rgb-hex (:blue colors)
-                   :xs-ys [[0 0] [1 0] [2 0] [0 1]]}
-                  {:piece-type :t
-                   :color-rgb-hex (:yellow colors)
-                   :xs-ys [[0 0] [1 0] [2 0] [1 1]]}])
 
-(def base-pieces-2
+;; TODO expand and wire to controls
+(def user-options (atom {:is-helpful false}))
+
+;; TODO rename pieces to tetronimos?
+(def base-pieces
   [{:piece-type :square
     :starting-y-offset 0
     :color-rgb-hex (:lavender colors)
+    ;; TODO rename xs-ys-rotations to piece-matrix-rotations or similar
     :xs-ys-rotations [[[1 1] [1 1]]]}
    {:piece-type :straight
     :starting-y-offset -2
@@ -106,39 +90,18 @@
                       [[0 1 0] [1 1 1] [0 0 0]]
                       [[0 1 0] [0 1 1] [0 1 0]]]}])
 
-(defn pieces->offset-pieces [pieces board-width]
-  (let [x-offset (-> board-width (quot 2) (- 1))
-        static-y-offset board-y-negative-offset]
-    (letfn [(add-offsets [xs-ys x-offset-adjusted]
-              (map (fn [[x y]] [(+ x-offset-adjusted x) (+ static-y-offset y)]) xs-ys))]
-      (mapv #(if (= (:piece-type %) :straight)
-               (update % :xs-ys add-offsets (dec x-offset))
-               (update % :xs-ys add-offsets x-offset))
-            pieces))))
-
-(def offset-pieces (pieces->offset-pieces base-pieces board-width))
-
-(defn generate-piece-queue []
-  ;; (repeatedly queue-length #(rand-nth offset-pieces))
-  (repeatedly queue-length #(first offset-pieces))
-  )
-
-(defn generate-piece-queue-2 []
-  ;; (repeatedly queue-length #(rand-nth offset-pieces))
-  (repeatedly queue-length #(rand-nth base-pieces-2))
-  )
+(defn generate-piece-queue [] (repeatedly queue-length #(rand-nth base-pieces)))
 
 (def game-initial-state {:is-paused true
                          :active-piece-top-left-x 0
                          :active-piece-top-left-y 0
                          :active-piece-type nil
                          :active-piece-color nil
-                         :active-piece-rotation 0
+                         :active-rotation-index 0
                          :active-piece nil
                          :game-over true
                          :rows-completed 0
                          :piece-queue nil
-                         :piece-queue-2 nil
                          :level 1
                          :bump-level false
                          :tick-duration 700
@@ -153,16 +116,15 @@
 
 ;; 'active-piece-xys' is the current active piece, translated from its matrix
 ;; form to xs-ys on the board form
+;; TODO figure out why this doesn't "update" after rotation
 (def active-piece-xys (reagent.ratom/reaction (active-piece-game-state->active-piece-xys @game)))
 
 (defn bump-queue! []
   (let [;; give straight for a 4-in-a-row
-        ;; (if (board-has-4-in-a-row? (:board @game))
-        ;;   (get offset-pieces 1)
-        ;; (rand-nth offset-pieces)
-        ;; (first offset-pieces)
-        upcoming-piece (rand-nth base-pieces-2)]
-    (swap! game update :piece-queue-2 #(->> % (drop 1) (cons upcoming-piece)))))
+        upcoming-piece (if (and (:is-helpful user-options) (board-has-4-in-a-row? (:board @game)))
+                         (get base-pieces 1)
+                         (rand-nth base-pieces))]
+    (swap! game update :piece-queue #(->> % (drop 1) (cons upcoming-piece)))))
 
 (defn xs-ys->place-actives! [xs-ys]
   (when (seq xs-ys)
@@ -199,7 +161,7 @@
   'active-piece' state."
   []
   (let [;; get the next piece the queue
-        new-active-piece (first (:piece-queue-2 @game))
+        new-active-piece (first (:piece-queue @game))
         ;; TODO move color handling from top-level state to active-piece sub-state
         {:keys [color-rgb-hex piece-type starting-y-offset xs-ys-rotations]} new-active-piece
         centering-x-offset (-> board-width (quot 2) (- 1))
@@ -207,8 +169,7 @@
         starting-top-left-xy [centering-x-offset starting-top-left-y]
         new-active-piece-xys (piece-matrix->xys (first xs-ys-rotations) starting-top-left-xy)
         new-piece-overlaps-existing-squares (not (xs-ys-are-free? new-active-piece-xys (:board @game)))]
-    (println "add-piece!")
-    ;; (println new-active-piece-xys)
+    ;; (println "add-piece!")
     ;; remove the piece-being-added from front of the queue
     (bump-queue!)
     ;; update all the 'active piece' state
@@ -216,16 +177,18 @@
     (swap! game assoc :active-piece-type piece-type)
     (swap! game assoc :active-piece-top-left-x centering-x-offset)
     (swap! game assoc :active-piece-top-left-y starting-top-left-y)
-    (swap! game assoc :active-rotation 0)
+    (swap! game assoc :active-rotation-index 0)
     (swap! game assoc :active-piece new-active-piece)
     (xs-ys->place-actives! new-active-piece-xys)
     (when new-piece-overlaps-existing-squares (end-game!))))
 
 (defn rotate! []
-  (let [{:keys [active-piece-type board]} @game
-        new-xs-ys (board->rotated-active-xys active-piece-type board)]
-    ;; TODO old to new piece types
-    (xs-ys->replace-actives! new-xs-ys)))
+  (let [new-rotation-index (cycle-rotation-index
+                            (:active-rotation-index @game)
+                            (get-in @game [:active-piece :xs-ys-rotations]))
+        rotated-active-xys (rotate @game)]
+    (swap! game assoc :active-rotation-index new-rotation-index)
+    (xs-ys->replace-actives! rotated-active-xys)))
 
 (defn deactivate-piece!
   "Swap out the board with one where all squares are {:active false}."
@@ -262,7 +225,7 @@
             (js/clearInterval @tick-interval)
             (reset! tick-interval (js/setInterval #(tick!) (:tick-duration @game)))
             (swap! game assoc :bump-level false))
-          (println "tick! -> add-piece!")
+          ;; (println "tick! -> add-piece!")
           (add-piece!)))))
 
 (defn start-tick-interval! []
@@ -281,7 +244,6 @@
 (defn start-game! []
   (reset! game game-initial-state)
   (swap! game assoc :piece-queue (generate-piece-queue))
-  (swap! game assoc :piece-queue-2 (generate-piece-queue-2))
   (swap! game assoc :game-over false)
   (add-piece!)
   (unpause!))
@@ -303,9 +265,9 @@
                   is-running (and (not is-paused) (not is-game-over))]
               (cond (or is-enter is-space) (if is-game-over (start-game!)
                                                (when (and (not is-paused)
-                                                          (piece-can-rotate? (:active-piece-type @game) (:board @game)))
+                                                          (piece-can-rotate? @game))
                                                  (rotate!)))
-                    is-up (when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))
+                    is-up (when (and is-running (piece-can-rotate? @game)) (rotate!))
                     is-p (when (not is-game-over) (pause-or-unpause!))
                     is-n (when (not is-game-over) (bump-queue!))
                     ;; FIXME when piece is at the bottom, user cannot press
@@ -330,7 +292,7 @@
                is-running (and (not is-paused) (not is-game-over))]
            [:div.hit-area-container {:on-click #(when (and (not is-running)) (start-game!))}
             [:div.hit-area-row
-             [:div.hit-area-up {:on-click #(when (and is-running (piece-can-rotate? (:active-piece-type @game) (:board @game))) (rotate!))}]]
+             [:div.hit-area-up {:on-click #(when (and is-running (piece-can-rotate? @game)) (rotate!))}]]
             [:div.hit-area-row
              [:div.hit-area-left
               {:on-touch-start #(reset! left-touch-interval

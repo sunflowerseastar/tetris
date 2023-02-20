@@ -31,11 +31,6 @@
     (-> board (nth (second x-y)) (nth (first x-y)))
     nil))
 
-(defn get-actives [board]
-  (->> board
-       flatten
-       (filter #(= (:active %) true))))
-
 (defn xs-ys-in-bounds? [xs-ys board]
   (let [board-width (count (first board))
         board-height (count board)
@@ -69,29 +64,6 @@
   (and (xs-ys-in-bounds? shifted-active-xys board)
        (xs-ys-are-free? shifted-active-xys board)))
 
-;; --------------------------
-;; old
-(defn board->shift
-  "Given an shift function for x, an shift function for y, and a board,
-  return a board with the x's and y's of all the active pieces adjusted. For
-  example, to move all the active pieces to the left, the x-fn would be dec and
-  the y-fn would be identity."
-  [x-fn y-fn board]
-  (map (fn [{:keys [x y]}] [(x-fn x) (y-fn y)]) (get-actives board)))
-
-(defn board->shifted-down-active-xys
-  "Given a board, return the xy's of the active piece shifted down one square. The
-  following two functions do the same thing for shifting left & right."
-  [board]
-  (board->shift identity inc board))
-
-(defn board->shifted-left-active-xys [board]
-  (board->shift dec identity board))
-
-(defn board->shifted-right-active-xys [board]
-  (board->shift inc identity board))
-
-;; new
 (defn shift-piece-matrix-down
   "Given the current active piece xy's, return the xy's shifted down one square."
   [capm]
@@ -118,13 +90,11 @@
 (defn piece-can-move-right? [active-xys board]
   (are-shifted-active-xys-in-bounds-and-free?
    (shift-piece-matrix-right active-xys) board))
-;; --------------------------
 
 (defn piece-matrix->xys
   "Given a 'piece matrix' and an active piece 'top-left' [x y], return all the corresponding xy coordinates on the board.
   Ex. [[1 1] [1 1]] [0 0] -> [[0 0] [1 0] [0 1] [1 1]]"
   ([piece-matrix [active-piece-top-left-x active-piece-top-left-y]]
-   ;; (println "piece-matrix->xys:" piece-matrix active-piece-top-left-x active-piece-top-left-y)
    (let [unfiltered-xs-ys (map-indexed
                            (fn [y row]
                              (map-indexed
@@ -143,175 +113,28 @@
   "Given the game state that describes the active piece, return the xys of the
   active piece."
   [active-piece-game-state]
-  (let [piece-matrix (nth (get-in active-piece-game-state [:active-piece :xs-ys-rotations]) (:active-piece-rotation active-piece-game-state))]
+  (let [piece-matrix (nth (get-in active-piece-game-state [:active-piece :xs-ys-rotations]) (:active-rotation-index active-piece-game-state))]
     (piece-matrix->xys piece-matrix [(:active-piece-top-left-x active-piece-game-state) (:active-piece-top-left-y active-piece-game-state)])))
 
-;; TODO rewrite - this is terrible
-(defn board->rotated-active-xys [piece-type board]
-  (let [actives (get-actives board)
-        xs (map :x actives)
-        ys (map :y actives)]
-    (cond (= piece-type :square) (map (fn [{:keys [x y]}] [x y]) actives)
-          (= piece-type :straight)
-          (let [is-vertical (apply = xs)]
-            (if is-vertical
-              (let [new-y (nth ys 2)
-                    new-xs (map #(+ (- (first xs) 1) %) [0 1 2 3])
-                    new-xs-ys (map (fn [x] [x new-y]) new-xs)]
-                new-xs-ys)
-              (let [new-x (second xs)
-                    starting-y (- (first ys) 2)
-                    new-ys (range starting-y (+ starting-y 4))
-                    new-xs-ys (map (fn [y] [new-x y]) new-ys)]
-                new-xs-ys)))
-          (= piece-type :s1)
-          (let [min-x (reduce min xs)
-                max-x (reduce max xs)
-                delta-x (- max-x min-x)
-                is-pos-1 (= delta-x 2)]
-            (if is-pos-1
-              (let [
-                    ;; block-1 (it-> actives (first it) [(:x it) (:y it)])
-                    block-1 (as-> actives it (first it) [(:x it) (:y it)])
-                    block-2 (as-> actives it (nth it 3) [(:x it) (:y it)])
-                    block-3 (as-> actives it (first it) [(dec (:x it)) (:y it)])
-                    block-4 (as-> actives it (first it) [(dec (:x it)) (dec (:y it))])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              (let [
-                    block-1 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    block-2 (as-> actives it (nth it 2) [(inc (:x it)) (:y it)])
-                    block-3 (as-> actives it (nth it 3) [(dec (:x it)) (:y it)])
-                    block-4 (as-> actives it (nth it 3) [(:x it) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)))
-          (= piece-type :s2)
-          (let [max-x (reduce max xs)
-                min-x (reduce min xs)
-                delta-x (- max-x min-x)
-                is-pos-1 (= delta-x 2)]
-            (if is-pos-1
-              (let [
-                    block-1 (as-> actives it (second it) [(inc (:x it)) (dec (:y it))])
-                    block-2 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-3 (as-> actives it (second it) [(inc (:x it)) (:y it)])
-                    block-4 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              (let [
-                    block-1 (as-> actives it (second it) [(dec (:x it)) (:y it)])
-                    block-2 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-3 (as-> actives it (nth it 3) [(:x it) (:y it)])
-                    block-4 (as-> actives it (nth it 3) [(inc (:x it)) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)))
-          (= piece-type :l1)
-          (let [max-x (reduce max xs)
-                is-pos-1 (apply = [(first ys) (second ys) (nth ys 2)])
-                is-pos-2 (= (count (filter #(= % max-x) xs)) 3)
-                is-pos-3 (apply = [(second ys) (nth ys 2) (nth ys 3)])]
-            (cond
-              is-pos-1
-              (let [block-1 (as-> actives it (second it) [(:x it) (dec (:y it))])
-                    block-2 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-3 (as-> actives it (second it) [(:x it) (inc (:y it))])
-                    block-4 (as-> actives it (first it) [(:x it) (inc (:y it))])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              is-pos-2
-              (let [block-1 (as-> actives it (first it) [(dec (:x it)) (:y it)])
-                    block-2 (as-> actives it (second it) [(dec (:x it)) (:y it)])
-                    block-3 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-4 (as-> actives it (second it) [(inc (:x it)) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              is-pos-3
-              (let [block-1 (as-> actives it (first it) [(inc (:x it)) (:y it)])
-                    block-2 (as-> actives it (first it) [(+ 2 (:x it)) (:y it)])
-                    block-3 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    block-4 (as-> actives it (nth it 2) [(:x it) (inc (:y it))])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              :else
-              (let [block-1 (as-> actives it (nth it 2) [(dec (:x it)) (:y it)])
-                    block-2 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    block-3 (as-> actives it (nth it 2) [(inc (:x it)) (:y it)])
-                    block-4 (as-> actives it (nth it 3) [(inc (:x it)) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)))
-          (= piece-type :l2)
-          (let [max-x (reduce max xs)
-                is-pos-1 (apply = [(first ys) (second ys) (nth ys 2)])
-                is-pos-2 (= (count (filter #(= % max-x) xs)) 3)
-                is-pos-3 (apply = [(second ys) (nth ys 2) (nth ys 3)])]
-            (cond is-pos-1
-                  (let [block-1 (as-> actives it (first it) [(:x it) (dec (:y it))])
-                        block-2 (as-> actives it (second it) [(:x it) (dec (:y it))])
-                        block-3 (as-> actives it (second it) [(:x it) (:y it)])
-                        block-4 (as-> actives it (second it) [(:x it) (inc (:y it))])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)
-                  is-pos-2
-                  (let [block-1 (as-> actives it (first it) [(:x it) (inc (:y it))])
-                        block-2 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                        block-3 (as-> actives it (nth it 2) [(inc (:x it)) (:y it)])
-                        block-4 (as-> actives it (second it) [(inc (:x it)) (:y it)])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)
-                  is-pos-3
-                  (let [block-1 (as-> actives it (first it) [(dec (:x it)) (:y it)])
-                        block-2 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                        block-3 (as-> actives it (nth it 2) [(:x it) (inc (:y it))])
-                        block-4 (as-> actives it (nth it 3) [(:x it) (inc (:y it))])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)
-                  :else
-                  (let [block-1 (as-> actives it (second it) [(dec (:x it)) (:y it)])
-                        block-2 (as-> actives it (second it) [(:x it) (:y it)])
-                        block-3 (as-> actives it (second it) [(inc (:x it)) (:y it)])
-                        block-4 (as-> actives it (nth it 2) [(dec (:x it)) (:y it)])
-                        new-xs-ys [block-1 block-2 block-3 block-4]]
-                    new-xs-ys)))
-          (= piece-type :t)
-          (let [is-pos-1 (apply = [(first ys) (second ys) (nth ys 2)])
-                is-pos-2 (apply = [(first xs) (second xs) (nth xs 3)])
-                is-pos-3 (apply = [(second ys) (nth ys 2) (nth ys 3)])]
-            (cond
-              is-pos-1
-              (let [block-1 (as-> actives it (second it) [(:x it) (dec (:y it))])
-                    block-2 (as-> actives it (first it) [(:x it) (:y it)])
-                    block-3 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-4 (as-> actives it (nth it 3) [(:x it) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              is-pos-2
-              (let [block-1 (as-> actives it (second it) [(dec (:x it)) (:y it)])
-                    block-2 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-3 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    block-4 (as-> actives it (second it) [(:x it) (inc (:y it))])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              is-pos-3
-              (let [
-                    block-1 (as-> actives it (first it) [(:x it) (:y it)])
-                    block-2 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    block-3 (as-> actives it (nth it 3) [(:x it) (:y it)])
-                    block-4 (as-> actives it (nth it 2) [(:x it) (inc (:y it))])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys)
-              :else
-              (let [block-1 (as-> actives it (first it) [(:x it) (:y it)])
-                    block-2 (as-> actives it (second it) [(:x it) (:y it)])
-                    block-3 (as-> actives it (nth it 2) [(:x it) (:y it)])
-                    block-4 (as-> actives it (nth it 2) [(inc (:x it)) (:y it)])
-                    new-xs-ys [block-1 block-2 block-3 block-4]]
-                new-xs-ys))))))
+(defn cycle-rotation-index
+  "Given the current rotation index and the xs-ys-rotations, return the next
+  rotation index."
+  [active-rotation-index xs-ys-rotations]
+  (mod (inc active-rotation-index) (count xs-ys-rotations)))
 
-;; TODO make this get enough params to use the rotation number in state
-(defn piece-can-rotate? [piece-type board]
-  (let [new-xs-ys (board->rotated-active-xys piece-type board)
-        in-bounds (xs-ys-in-bounds? new-xs-ys board)]
-    (and in-bounds (xs-ys-are-free? new-xs-ys board))))
+(defn rotate
+  "Given the game state that contains all the active piece information, determine
+  what the active piece's next rotation index would be, then translate the
+  active piece's corresponding piece matrix to xys."
+  [active-piece-game-state]
+  (let [{:keys [active-rotation-index active-piece active-piece-top-left-x active-piece-top-left-y]} active-piece-game-state
+        rotations (:xs-ys-rotations active-piece)
+        new-rotation-index (cycle-rotation-index active-rotation-index rotations)
+        rotated-piece-matrix (nth (get-in active-piece-game-state [:active-piece :xs-ys-rotations]) new-rotation-index)]
+    (piece-matrix->xys rotated-piece-matrix [active-piece-top-left-x active-piece-top-left-y])))
+
+(defn piece-can-rotate? [active-piece-game-state]
+  (are-shifted-active-xys-in-bounds-and-free? (rotate active-piece-game-state) (:board active-piece-game-state)))
 
 (defn indexed
   "Returns a lazy sequence of [index, item] pairs, where items come
