@@ -21,9 +21,8 @@
   (mapv (fn [row] (mapv #(if (true? (:active %)) nil %) row)) board))
 
 ;; TODO refactor x-y and xys to coordinates?
-(defn x-y-in-bounds? [x-y board]
-  (let [x (first x-y) y (second x-y)
-        x-in-bounds (and (>= x 0) (< x (count (first board))))
+(defn x-y-in-bounds? [[x y] board]
+  (let [x-in-bounds (and (>= x 0) (< x (count (first board))))
         y-in-bounds (and (>= y 0) (< y (count board)))]
     (and x-in-bounds y-in-bounds)))
 
@@ -62,6 +61,16 @@
        ;; return whether all these squares are empty
        (every? nil?)))
 
+(defn are-shifted-active-xys-in-bounds-and-free?
+  "Given the xy's of a shifted active piece and a board, return a boolean whether
+  it's a legal shift or not. The following three functions use this to see if
+  the active piece can shift down, left, and right."
+  [shifted-active-xys board]
+  (and (xs-ys-in-bounds? shifted-active-xys board)
+       (xs-ys-are-free? shifted-active-xys board)))
+
+;; --------------------------
+;; old
 (defn board->shift
   "Given an shift function for x, an shift function for y, and a board,
   return a board with the x's and y's of all the active pieces adjusted. For
@@ -82,29 +91,60 @@
 (defn board->shifted-right-active-xys [board]
   (board->shift inc identity board))
 
-(defn are-shifted-active-xys-in-bounds-and-free?
-  "Given the xy's of a shifted active piece and a board, return a boolean whether
-  it's a legal shift or not. The following three functions use this to see if
-  the active piece can shift down, left, and right."
-  [shifted-active-xys board]
-  (and (xs-ys-in-bounds? shifted-active-xys board)
-       (xs-ys-are-free? shifted-active-xys board)))
+;; new
+(defn shift-piece-matrix-down
+  "Given the current active piece xy's, return the xy's shifted down one square."
+  [capm]
+  (map (fn [[x y]] [x (inc y)]) capm))
 
-(defn piece-can-move-down? [board]
-  (are-shifted-active-xys-in-bounds-and-free?
-   (board->shifted-down-active-xys board) board))
+(defn shift-piece-matrix-left
+  "Given the current active piece xy's, return the xy's shifted left one square."
+  [capm]
+  (map (fn [[x y]] [(dec x) y]) capm))
 
-(defn piece-can-move-down-2? [board]
-  (are-shifted-active-xys-in-bounds-and-free?
-   (board->shifted-down-active-xys board) board))
+(defn shift-piece-matrix-right
+  "Given the current active piece xy's, return the xy's shifted right one square."
+  [capm]
+  (map (fn [[x y]] [(inc x) y]) capm))
 
-(defn piece-can-move-left? [board]
+(defn piece-can-move-down? [active-xys board]
   (are-shifted-active-xys-in-bounds-and-free?
-   (board->shifted-left-active-xys board) board))
+   (shift-piece-matrix-down active-xys) board))
 
-(defn piece-can-move-right? [board]
+(defn piece-can-move-left? [active-xys board]
   (are-shifted-active-xys-in-bounds-and-free?
-   (board->shifted-right-active-xys board) board))
+   (shift-piece-matrix-left active-xys) board))
+
+(defn piece-can-move-right? [active-xys board]
+  (are-shifted-active-xys-in-bounds-and-free?
+   (shift-piece-matrix-right active-xys) board))
+;; --------------------------
+
+(defn piece-matrix->xys
+  "Given a 'piece matrix' and an active piece 'top-left' [x y], return all the corresponding xy coordinates on the board.
+  Ex. [[1 1] [1 1]] [0 0] -> [[0 0] [1 0] [0 1] [1 1]]"
+  ([piece-matrix [active-piece-top-left-x active-piece-top-left-y]]
+   ;; (println "piece-matrix->xys:" piece-matrix active-piece-top-left-x active-piece-top-left-y)
+   (let [unfiltered-xs-ys (map-indexed
+                           (fn [y row]
+                             (map-indexed
+                              (fn [x val]
+                                (when (pos? val)
+                                  [(+ x active-piece-top-left-x)
+                                   (+ y active-piece-top-left-y)]))
+                              row))
+                           piece-matrix)
+         filtered-xs-ys (map #(filter identity %) unfiltered-xs-ys)]
+     (->> filtered-xs-ys
+          (apply concat)
+          vec))))
+
+(defn active-piece-game-state->active-piece-xys
+  "Given the game state that describes the active piece, return the xys of the
+  active piece."
+  [active-piece-game-state]
+  (let [piece-matrix (nth (get-in active-piece-game-state [:active-piece :xs-ys-rotations]) (:active-piece-rotation active-piece-game-state))]
+    (piece-matrix->xys piece-matrix [(:active-piece-top-left-x active-piece-game-state) (:active-piece-top-left-y active-piece-game-state)])))
 
 ;; TODO rewrite - this is terrible
 (defn board->rotated-active-xys [piece-type board]
@@ -267,6 +307,7 @@
                     new-xs-ys [block-1 block-2 block-3 block-4]]
                 new-xs-ys))))))
 
+;; TODO make this get enough params to use the rotation number in state
 (defn piece-can-rotate? [piece-type board]
   (let [new-xs-ys (board->rotated-active-xys piece-type board)
         in-bounds (xs-ys-in-bounds? new-xs-ys board)]
