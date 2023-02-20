@@ -1,6 +1,4 @@
-(ns tetris.components
-  (:require
-   [clojure.core.matrix :refer [new-matrix]]))
+(ns tetris.components)
 
 (defn board [board-width game board-y-negative-offset]
   [:div.board {:style {:gridTemplateColumns (str "repeat(" board-width ", 1fr)")}}
@@ -29,7 +27,7 @@
          xs (map first base-xs-ys) ys (map second base-xs-ys)
          min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
          min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
-         matrix-for-grid (new-matrix height-y width-x)]
+         matrix-for-grid (vec (repeat height-y (vec (repeat width-x 0))))]
      (map-indexed
       (fn [y row]
         (map-indexed

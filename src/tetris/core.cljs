@@ -19,7 +19,7 @@
                            piece-can-rotate?
                            xs-ys-are-free?]]
    [goog.dom :as gdom]
-   [tupelo.core :refer [append it->]]
+   [reagent.dom :as rdom]
    [reagent.core :as reagent :refer [atom create-class]]))
 
 (def colors {:lavender "#d0d0ff"
@@ -459,6 +459,6 @@
 
 (defn mount-app-element []
   (when-let [el (gdom/getElement "app")]
-    (reagent/render-component [tetris] el)))
+    (rdom/render [tetris] el)))
 
 (defonce start-up (do (mount-app-element) true))
