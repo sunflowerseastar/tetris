@@ -7,19 +7,19 @@
     (fn [y row]
       (map-indexed
        (fn [x square]
-         (let [{:keys [color]} square]
+         (let [{:keys [color-hex]} square]
            [:div.square
             {:key (str x y)
              :class [(when (zero? x) "left-edge") (when (zero? y) "top-edge")]
              :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                     :background color}}]))
+                     :background color-hex}}]))
        row))
     (drop board-y-negative-offset (:board @game)))])
 
 (defn upcoming-piece-component [game bump-queue! tetrominoes]
   [:div.upcoming-piece
    {:on-click #(when (not (:game-over @game)) (bump-queue!))}
-   (let [{:keys [color-rgb-hex piece-type]} (first (:piece-queue @game))
+   (let [{:keys [color-hex piece-type]} (first (:piece-queue @game))
          piece-matrix (-> tetrominoes (get (keyword piece-type)) :piece-matrix-rotations first)
          coords (piece-matrix->coords piece-matrix [0 0])
          matrix-for-grid (vec (repeat (count piece-matrix)
@@ -32,7 +32,7 @@
              [:div.upcoming-piece-square
               {:key (str x y)
                :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                       :background (when is-a-unit-square color-rgb-hex)}}]))
+                       :background (when is-a-unit-square color-hex)}}]))
          row))
       matrix-for-grid))])
 

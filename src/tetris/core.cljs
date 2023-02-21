@@ -49,41 +49,41 @@
 (def tetrominoes
   {:square {:piece-type :square
             :starting-y-offset 0
-            :color-rgb-hex (:lavender colors)
+            :color-hex (:lavender colors)
             :piece-matrix-rotations [[[1 1] [1 1]]]}
    :straight {:piece-type :straight
               :starting-y-offset -2
               ;; TODO starting-x-offset -1
-              :color-rgb-hex (:orange colors)
+              :color-hex (:orange colors)
               :piece-matrix-rotations [[[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]]
                                        [[0 1 0 0] [0 1 0 0] [0 1 0 0] [0 1 0 0]]]}
    :s1 {:piece-type :s1
         :starting-y-offset -1
-        :color-rgb-hex (:green colors)
+        :color-hex (:green colors)
         :piece-matrix-rotations [[[0 0 0] [0 1 1] [1 1 0]]
                                  [[1 0 0] [1 1 0] [0 1 0]]]}
    :s2 {:piece-type :s2
         :starting-y-offset -1
-        :color-rgb-hex (:pink colors)
+        :color-hex (:pink colors)
         :piece-matrix-rotations [[[0 0 0] [1 1 0] [0 1 1]]
                                  [[0 0 1] [0 1 1] [0 1 0]]]}
    :l1 {:piece-type :l1
         :starting-y-offset -1
-        :color-rgb-hex (:red colors)
+        :color-hex (:red colors)
         :piece-matrix-rotations [[[0 0 0] [1 1 1] [0 0 1]]
                                  [[0 1 0] [0 1 0] [1 1 0]]
                                  [[1 0 0] [1 1 1] [0 0 0]]
                                  [[0 1 1] [0 1 0] [0 1 0]]]}
    :l2 {:piece-type :l2
         :starting-y-offset -1
-        :color-rgb-hex (:blue colors)
+        :color-hex (:blue colors)
         :piece-matrix-rotations [[[0 0 0] [1 1 1] [1 0 0]]
                                  [[1 1 0] [0 1 0] [0 1 0]]
                                  [[0 0 1] [1 1 1] [0 0 0]]
                                  [[0 1 0] [0 1 0] [0 1 1]]]}
    :t {:piece-type :t
        :starting-y-offset -1
-       :color-rgb-hex (:yellow colors)
+       :color-hex (:yellow colors)
        :piece-matrix-rotations [[[0 0 0] [1 1 1] [0 1 0]]
                                 [[0 1 0] [1 1 0] [0 1 0]]
                                 [[0 1 0] [1 1 1] [0 0 0]]
@@ -129,15 +129,15 @@
 ;; TODO refactor approach of this function and the following one - perform this
 ;; purely on the board, then swap out the board.
 (defn coords->place-actives!
-  "Given a list of coordinate pairs, update the game board with those locations and active."
+  "Given a list of xy coordinate pairs, update the game board in those locations. Make them active and give them the current active piece's color."
   [coords]
   (when (seq coords)
     (let [[x y] (first coords)]
-      (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true})
+      (swap! game assoc-in [:board y x] {:color-hex (:active-piece-color @game) :active true})
       (coords->place-actives! (rest coords)))))
 
 (defn coords->replace-actives!
-  "Given a list of coordinate pairs, clear the game board's current actives and
+  "Given a list of xy coordinate pairs, clear the game board's current actives and
   update it with the provided xy coordinate locations as active."
   [coords]
   (swap! game update :board board->board-without-actives)
@@ -169,7 +169,7 @@
   (let [;; get the next piece the queue
         new-active-piece (first (:piece-queue @game))
         ;; TODO move color handling from top-level state to active-piece sub-state
-        {:keys [color-rgb-hex piece-type starting-y-offset piece-matrix-rotations]} new-active-piece
+        {:keys [color-hex piece-type starting-y-offset piece-matrix-rotations]} new-active-piece
         centering-x-offset (-> board-width (quot 2) (- 1))
         starting-top-left-y (+ starting-y-offset board-y-negative-offset)
         starting-top-left-xy [centering-x-offset starting-top-left-y]
@@ -179,7 +179,7 @@
     ;; remove the piece-being-added from front of the queue
     (bump-queue!)
     ;; update all the 'active piece' state
-    (swap! game assoc :active-piece-color color-rgb-hex)
+    (swap! game assoc :active-piece-color color-hex)
     (swap! game assoc :active-piece-type piece-type)
     (swap! game assoc :active-piece-top-left-x centering-x-offset)
     (swap! game assoc :active-piece-top-left-y starting-top-left-y)

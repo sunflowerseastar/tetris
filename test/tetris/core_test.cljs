@@ -43,7 +43,7 @@
    :active-rotation-index 3
    :active-piece {:piece-type :t
                   :starting-y-offset -1
-                  ;; :color-rgb-hex (:yellow colors)
+                  ;; :color-hex (:yellow colors)
                   :rotation 0
                   :piece-matrix-rotations [[[0 0 0] [1 1 1] [0 1 0]]
                                            [[0 1 0] [1 1 0] [0 1 0]]
