@@ -1,4 +1,4 @@
-(defproject tetris "0.3.0"
+(defproject tetris "0.4.0"
   :description "Tetris in Reagent"
   :url "https://github.com/sunflowerseastar/tetris"
   :license {:name "GNU Affero General Public License v3"

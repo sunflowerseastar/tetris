@@ -7,3 +7,43 @@ lein fig:build # dev - localhost:9500
 lein fig:min   # build
 lein fig:test  # test
 #+end_src
+
+Each tetromino starts out as a /piece matrix/. For example, here are the two ~piece-matrix-rotations~ of the piece-type ~straight~:
+
+#+begin_src clojure
+[;; horizontal
+ [[0 0 0 0]
+  [0 0 0 0]
+  [1 1 1 1]
+  [0 0 0 0]]
+ [;; vertical
+  [0 1 0 0]
+  [0 1 0 0]
+  [0 1 0 0]
+  [0 1 0 0]]]
+#+end_src
+
+In order to place a piece matrix on the board, it needs to be translated to xy coordinates for the game board, called /coords/ (using the helper function ~piece-matrix->coords~). A [[https://github.com/reagent-project/reagent/blob/master/doc/ManagingState.md#reactions][reaction]] defined as ~active-piece-coords~ provides this translation as an ongoing extension of the game state.
+
+In order to know where on the board a given piece matrix should be translated into coords, the ~piece-matrix->coords~ needs to know the xy coordinates for the top left square of the piece matrix. As an example, here is the piece matrix for the straight piece type in its zeroth rotation, translated to coordinates on the board with a game board xy position of ~[0, 0]~:
+
+#+begin_src clojure
+(def piece-matrix [[0 0 0 0]
+                   [0 0 0 0]
+                   [1 1 1 1]
+                   [0 0 0 0]])
+
+(piece-matrix->coords piece-matrix [0 0])
+;; => [[0 2] [1 2] [2 2] [3 2]]
+
+;; board coordinates:
+;;   012345...
+;; 0 ------...
+;; 1 ------...
+;; 2 ████--...
+;; 3 ------...
+;; 4 ------...
+;; 5 ---...
+#+end_src
+
+Notice that ~[0, 0]~ cannot not work as a tetromino's starting point. Rather, the ~add-piece!~ function finds the appropriate centering ~x~ coordinate, and the ~y~ coordinate employs a ~starting-y-offset~ to raise it partially above the top of the starting board (so to speak).
