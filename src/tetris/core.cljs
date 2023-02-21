@@ -324,7 +324,7 @@
            [board board-width game board-y-negative-offset]]
           [:div.meta-container
            [:div.upcoming-piece-container {:class (when (:is-paused @game) "is-paused")}
-            [upcoming-piece-component game bump-queue!]]
+            [upcoming-piece-component game bump-queue! tetrominoes]]
            [:div.rows-completed-container
             [rows-completed-component game bump-queue!]]
            [:div.level-container {:class (when (:is-paused @game) "is-paused")}

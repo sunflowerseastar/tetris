@@ -16,24 +16,23 @@
        row))
     (drop board-y-negative-offset (:board @game)))])
 
-;; TODO fix queue
-(defn upcoming-piece-component [game bump-queue!]
+(defn upcoming-piece-component [game bump-queue! tetrominoes]
   [:div.upcoming-piece
    {:on-click #(when (not (:game-over @game)) (bump-queue!))}
-   (let [{:keys [active-piece active-piece-top-left-x active-piece-top-left-y]} @game
-         {:keys [color-rgb-hex]} (first (:piece-queue @game))
-         piece-matrix (-> active-piece :piece-matrix-rotations first)
-         coords (piece-matrix->coords piece-matrix [active-piece-top-left-x active-piece-top-left-y])
-         matrix-for-grid (vec (repeat (count (first piece-matrix))
-                                      (vec (repeat (-> piece-matrix first first) 0))))]
+   (let [{:keys [color-rgb-hex piece-type]} (first (:piece-queue @game))
+         piece-matrix (-> tetrominoes (get (keyword piece-type)) :piece-matrix-rotations first)
+         coords (piece-matrix->coords piece-matrix [0 0])
+         matrix-for-grid (vec (repeat (count piece-matrix)
+                                      (vec (repeat (-> piece-matrix first count) 0))))]
      (map-indexed
       (fn [y row]
         (map-indexed
          (fn [x]
-           (let [match (some #{[x y]} coords)]
-             [:div.upcoming-piece-square {:key (str x y)
-                                          :style {:grid-column (+ x 1) :grid-row (+ y 1)
-                                                  :background (when match color-rgb-hex)}}]))
+           (let [is-a-unit-square (some #{[x y]} coords)]
+             [:div.upcoming-piece-square
+              {:key (str x y)
+               :style {:grid-column (+ x 1) :grid-row (+ y 1)
+                       :background (when is-a-unit-square color-rgb-hex)}}]))
          row))
       matrix-for-grid))])
 
