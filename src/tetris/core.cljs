@@ -25,6 +25,7 @@
    [reagent.ratom :as reagent.ratom]
    [reagent.core :as reagent :refer [atom create-class]]))
 
+;; TODO move hexs to css
 (def colors {:lavender "#d0d0ff"
              :orange "#ffd3ad"
              :green "#b1e597"
@@ -53,7 +54,7 @@
             :piece-matrix-rotations [[[1 1] [1 1]]]}
    :straight {:piece-type :straight
               :starting-y-offset -2
-              ;; TODO starting-x-offset -1
+              :starting-x-offset -1
               :color-hex (:orange colors)
               :piece-matrix-rotations [[[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]]
                                        [[0 1 0 0] [0 1 0 0] [0 1 0 0] [0 1 0 0]]]}
@@ -169,10 +170,11 @@
   (let [;; get the next piece the queue
         new-active-piece (first (:piece-queue @game))
         ;; TODO move color handling from top-level state to active-piece sub-state
-        {:keys [color-hex piece-type starting-y-offset piece-matrix-rotations]} new-active-piece
+        {:keys [color-hex piece-type starting-x-offset starting-y-offset piece-matrix-rotations]} new-active-piece
         centering-x-offset (-> board-width (quot 2) (- 1))
+        starting-top-left-x (+ centering-x-offset starting-x-offset)
         starting-top-left-y (+ starting-y-offset board-y-negative-offset)
-        starting-top-left-xy [centering-x-offset starting-top-left-y]
+        starting-top-left-xy [starting-top-left-x starting-top-left-y]
         new-active-piece-coords (piece-matrix->coords (first piece-matrix-rotations) starting-top-left-xy)
         new-piece-overlaps-existing-squares (not (coords-are-free? new-active-piece-coords (:board @game)))]
     ;; (println "add-piece!")
@@ -181,7 +183,7 @@
     ;; update all the 'active piece' state
     (swap! game assoc :active-piece-color color-hex)
     (swap! game assoc :active-piece-type piece-type)
-    (swap! game assoc :active-piece-top-left-x centering-x-offset)
+    (swap! game assoc :active-piece-top-left-x starting-top-left-x)
     (swap! game assoc :active-piece-top-left-y starting-top-left-y)
     (swap! game assoc :active-rotation-index 0)
     (swap! game assoc :active-piece new-active-piece)
