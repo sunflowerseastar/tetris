@@ -109,6 +109,10 @@
   (is (= (helpers/active-piece-game-state->active-piece-coords test-game-2) [[1 1] [1 2] [2 2] [1 3]]))
   (is (= (helpers/active-piece-game-state->active-piece-coords test-game-3) [[1 1] [2 1] [3 1] [2 2]])))
 
+(deftest piece-matrix->coords-test
+  (is (= (helpers/piece-matrix->coords [[1 1] [1 1]] [0 0]) [[0 0] [1 0] [0 1] [1 1]]))
+  (is (= (helpers/piece-matrix->coords [[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]] [0 0]) [[0 2] [1 2] [2 2] [3 2]])))
+
 (deftest are-shifted-active-coords-in-bounds-and-free-test
   (is (= (helpers/are-shifted-active-coords-in-bounds-and-free? t1-active-piece-coords t1-board) true))
   (is (= (helpers/are-shifted-active-coords-in-bounds-and-free? (helpers/shift-piece-matrix-left t1-active-piece-coords) t1-board) true))
