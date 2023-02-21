@@ -46,51 +46,50 @@
 ;; TODO expand and wire to controls
 (def user-options (atom {:is-helpful false}))
 
-;; TODO rename pieces to tetronimos?
-(def base-pieces
-  [{:piece-type :square
-    :starting-y-offset 0
-    :color-rgb-hex (:lavender colors)
-    ;; TODO rename xs-ys-rotations to piece-matrix-rotations or similar
-    :xs-ys-rotations [[[1 1] [1 1]]]}
-   {:piece-type :straight
-    :starting-y-offset -2
-    :color-rgb-hex (:orange colors)
-    :xs-ys-rotations [[[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]]
-                      [[0 1 0 0] [0 1 0 0] [0 1 0 0] [0 1 0 0]]]}
-   {:piece-type :s1
-    :starting-y-offset -1
-    :color-rgb-hex (:green colors)
-    :xs-ys-rotations [[[0 0 0] [0 1 1] [1 1 0]]
-                      [[1 0 0] [1 1 0] [0 1 0]]]}
-   {:piece-type :s2
-    :starting-y-offset -1
-    :color-rgb-hex (:pink colors)
-    :xs-ys-rotations [[[0 0 0] [1 1 0] [0 1 1]]
-                      [[0 0 1] [0 1 1] [0 1 0]]]}
-   {:piece-type :l1
-    :starting-y-offset -1
-    :color-rgb-hex (:red colors)
-    :xs-ys-rotations [[[0 0 0] [1 1 1] [0 0 1]]
-                      [[0 1 0] [0 1 0] [1 1 0]]
-                      [[1 0 0] [1 1 1] [0 0 0]]
-                      [[0 1 1] [0 1 0] [0 1 0]]]}
-   {:piece-type :l2
-    :starting-y-offset -1
-    :color-rgb-hex (:blue colors)
-    :xs-ys-rotations [[[0 0 0] [1 1 1] [1 0 0]]
-                      [[1 1 0] [0 1 0] [0 1 0]]
-                      [[0 0 1] [1 1 1] [0 0 0]]
-                      [[0 1 0] [0 1 0] [0 1 1]]]}
-   {:piece-type :t
-    :starting-y-offset -1
-    :color-rgb-hex (:yellow colors)
-    :xs-ys-rotations [[[0 0 0] [1 1 1] [0 1 0]]
-                      [[0 1 0] [1 1 0] [0 1 0]]
-                      [[0 1 0] [1 1 1] [0 0 0]]
-                      [[0 1 0] [0 1 1] [0 1 0]]]}])
+(def tetrominoes
+  {:square {:piece-type :square
+            :starting-y-offset 0
+            :color-rgb-hex (:lavender colors)
+            ;; TODO rename xs-ys-rotations to piece-matrix-rotations or similar
+            :xs-ys-rotations [[[1 1] [1 1]]]}
+   :straight {:piece-type :straight
+              :starting-y-offset -2
+              :color-rgb-hex (:orange colors)
+              :xs-ys-rotations [[[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]]
+                                [[0 1 0 0] [0 1 0 0] [0 1 0 0] [0 1 0 0]]]}
+   :s1 {:piece-type :s1
+        :starting-y-offset -1
+        :color-rgb-hex (:green colors)
+        :xs-ys-rotations [[[0 0 0] [0 1 1] [1 1 0]]
+                          [[1 0 0] [1 1 0] [0 1 0]]]}
+   :s2 {:piece-type :s2
+        :starting-y-offset -1
+        :color-rgb-hex (:pink colors)
+        :xs-ys-rotations [[[0 0 0] [1 1 0] [0 1 1]]
+                          [[0 0 1] [0 1 1] [0 1 0]]]}
+   :l1 {:piece-type :l1
+        :starting-y-offset -1
+        :color-rgb-hex (:red colors)
+        :xs-ys-rotations [[[0 0 0] [1 1 1] [0 0 1]]
+                          [[0 1 0] [0 1 0] [1 1 0]]
+                          [[1 0 0] [1 1 1] [0 0 0]]
+                          [[0 1 1] [0 1 0] [0 1 0]]]}
+   :l2 {:piece-type :l2
+        :starting-y-offset -1
+        :color-rgb-hex (:blue colors)
+        :xs-ys-rotations [[[0 0 0] [1 1 1] [1 0 0]]
+                          [[1 1 0] [0 1 0] [0 1 0]]
+                          [[0 0 1] [1 1 1] [0 0 0]]
+                          [[0 1 0] [0 1 0] [0 1 1]]]}
+   :t {:piece-type :t
+       :starting-y-offset -1
+       :color-rgb-hex (:yellow colors)
+       :xs-ys-rotations [[[0 0 0] [1 1 1] [0 1 0]]
+                         [[0 1 0] [1 1 0] [0 1 0]]
+                         [[0 1 0] [1 1 1] [0 0 0]]
+                         [[0 1 0] [0 1 1] [0 1 0]]]}})
 
-(defn generate-piece-queue [] (repeatedly queue-length #(rand-nth base-pieces)))
+(defn generate-piece-queue [] (repeatedly queue-length #(-> tetrominoes shuffle first val)))
 
 (def game-initial-state {:is-paused true
                          :active-piece-top-left-x 0
@@ -116,14 +115,13 @@
 
 ;; 'active-piece-xys' is the current active piece, translated from its matrix
 ;; form to xs-ys on the board form
-;; TODO figure out why this doesn't "update" after rotation
 (def active-piece-xys (reagent.ratom/reaction (active-piece-game-state->active-piece-xys @game)))
 
 (defn bump-queue! []
   (let [;; give straight for a 4-in-a-row
         upcoming-piece (if (and (:is-helpful user-options) (board-has-4-in-a-row? (:board @game)))
-                         (get base-pieces 1)
-                         (rand-nth base-pieces))]
+                         (-> tetrominoes :straight val)
+                         (-> tetrominoes shuffle first val))]
     (swap! game update :piece-queue #(->> % (drop 1) (cons upcoming-piece)))))
 
 (defn xs-ys->place-actives! [xs-ys]
@@ -318,7 +316,7 @@
            [board board-width game board-y-negative-offset]]
           [:div.meta-container
            [:div.upcoming-piece-container {:class (when (:is-paused @game) "is-paused")}
-            [upcoming-piece-component game bump-queue! base-pieces]]
+            [upcoming-piece-component game bump-queue! tetrominoes]]
            [:div.rows-completed-container
             [rows-completed-component game bump-queue!]]
            [:div.level-container {:class (when (:is-paused @game) "is-paused")}
@@ -328,4 +326,5 @@
   (when-let [el (gdom/getElement "app")]
     (rdom/render [tetris] el)))
 
-(defonce start-up (do (mount-app-element) true))
+(defonce start-up (do (mount-app-element) true)
+  )

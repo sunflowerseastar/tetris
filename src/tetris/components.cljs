@@ -15,12 +15,12 @@
        row))
     (drop board-y-negative-offset (:board @game)))])
 
-(defn upcoming-piece-component [game bump-queue! base-pieces]
+(defn upcoming-piece-component [game bump-queue! tetrominoes]
   [:div.upcoming-piece
    {:on-click #(when (not (:game-over @game)) (bump-queue!))}
    (let [upcoming-piece (first (:piece-queue @game))
          {:keys [color-rgb-hex piece-type]} upcoming-piece
-         base-xs-ys (->> base-pieces
+         base-xs-ys (->> tetrominoes
                          (filter #(= (:piece-type %) piece-type))
                          first
                          :xs-ys)
