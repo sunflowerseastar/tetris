@@ -4,13 +4,13 @@
                               level-component
                               rows-completed-component
                               upcoming-piece-component]]
-   [tetris.helpers :refer [active-piece-game-state->active-piece-xys
+   [tetris.helpers :refer [active-piece-game-state->active-piece-coords
                            board->board-without-actives
                            board->board-without-completions
                            board-has-4-in-a-row?
                            cycle-rotation-index
                            generate-board
-                           piece-matrix->xys
+                           piece-matrix->coords
                            piece-can-move-down?
                            piece-can-move-left?
                            piece-can-move-right?
@@ -19,7 +19,7 @@
                            shift-piece-matrix-down
                            shift-piece-matrix-left
                            shift-piece-matrix-right
-                           xs-ys-are-free?]]
+                           coords-are-free?]]
    [goog.dom :as gdom]
    [reagent.dom :as rdom]
    [reagent.ratom :as reagent.ratom]
@@ -50,44 +50,44 @@
   {:square {:piece-type :square
             :starting-y-offset 0
             :color-rgb-hex (:lavender colors)
-            ;; TODO rename xs-ys-rotations to piece-matrix-rotations or similar
-            :xs-ys-rotations [[[1 1] [1 1]]]}
+            :piece-matrix-rotations [[[1 1] [1 1]]]}
    :straight {:piece-type :straight
               :starting-y-offset -2
+              ;; TODO starting-x-offset -1
               :color-rgb-hex (:orange colors)
-              :xs-ys-rotations [[[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]]
-                                [[0 1 0 0] [0 1 0 0] [0 1 0 0] [0 1 0 0]]]}
+              :piece-matrix-rotations [[[0 0 0 0] [0 0 0 0] [1 1 1 1] [0 0 0 0]]
+                                       [[0 1 0 0] [0 1 0 0] [0 1 0 0] [0 1 0 0]]]}
    :s1 {:piece-type :s1
         :starting-y-offset -1
         :color-rgb-hex (:green colors)
-        :xs-ys-rotations [[[0 0 0] [0 1 1] [1 1 0]]
-                          [[1 0 0] [1 1 0] [0 1 0]]]}
+        :piece-matrix-rotations [[[0 0 0] [0 1 1] [1 1 0]]
+                                 [[1 0 0] [1 1 0] [0 1 0]]]}
    :s2 {:piece-type :s2
         :starting-y-offset -1
         :color-rgb-hex (:pink colors)
-        :xs-ys-rotations [[[0 0 0] [1 1 0] [0 1 1]]
-                          [[0 0 1] [0 1 1] [0 1 0]]]}
+        :piece-matrix-rotations [[[0 0 0] [1 1 0] [0 1 1]]
+                                 [[0 0 1] [0 1 1] [0 1 0]]]}
    :l1 {:piece-type :l1
         :starting-y-offset -1
         :color-rgb-hex (:red colors)
-        :xs-ys-rotations [[[0 0 0] [1 1 1] [0 0 1]]
-                          [[0 1 0] [0 1 0] [1 1 0]]
-                          [[1 0 0] [1 1 1] [0 0 0]]
-                          [[0 1 1] [0 1 0] [0 1 0]]]}
+        :piece-matrix-rotations [[[0 0 0] [1 1 1] [0 0 1]]
+                                 [[0 1 0] [0 1 0] [1 1 0]]
+                                 [[1 0 0] [1 1 1] [0 0 0]]
+                                 [[0 1 1] [0 1 0] [0 1 0]]]}
    :l2 {:piece-type :l2
         :starting-y-offset -1
         :color-rgb-hex (:blue colors)
-        :xs-ys-rotations [[[0 0 0] [1 1 1] [1 0 0]]
-                          [[1 1 0] [0 1 0] [0 1 0]]
-                          [[0 0 1] [1 1 1] [0 0 0]]
-                          [[0 1 0] [0 1 0] [0 1 1]]]}
+        :piece-matrix-rotations [[[0 0 0] [1 1 1] [1 0 0]]
+                                 [[1 1 0] [0 1 0] [0 1 0]]
+                                 [[0 0 1] [1 1 1] [0 0 0]]
+                                 [[0 1 0] [0 1 0] [0 1 1]]]}
    :t {:piece-type :t
        :starting-y-offset -1
        :color-rgb-hex (:yellow colors)
-       :xs-ys-rotations [[[0 0 0] [1 1 1] [0 1 0]]
-                         [[0 1 0] [1 1 0] [0 1 0]]
-                         [[0 1 0] [1 1 1] [0 0 0]]
-                         [[0 1 0] [0 1 1] [0 1 0]]]}})
+       :piece-matrix-rotations [[[0 0 0] [1 1 1] [0 1 0]]
+                                [[0 1 0] [1 1 0] [0 1 0]]
+                                [[0 1 0] [1 1 1] [0 0 0]]
+                                [[0 1 0] [0 1 1] [0 1 0]]]}})
 
 (defn generate-piece-queue [] (repeatedly queue-length #(-> tetrominoes shuffle first val)))
 
@@ -113,9 +113,11 @@
 
 (def game (atom game-initial-state))
 
-;; 'active-piece-xys' is the current active piece, translated from its matrix
-;; form to xs-ys on the board form
-(def active-piece-xys (reagent.ratom/reaction (active-piece-game-state->active-piece-xys @game)))
+;; 'active-piece-coords' is the current active piece, translated from its matrix
+;; form to xy coordinates on the board form
+(def active-piece-coords (reagent.ratom/reaction (active-piece-game-state->active-piece-coords @game)))
+
+;; TODO add an active-state cursor for active-piece-game-state->active-piece-coords
 
 (defn bump-queue! []
   (let [;; give straight for a 4-in-a-row
@@ -124,16 +126,22 @@
                          (-> tetrominoes shuffle first val))]
     (swap! game update :piece-queue #(->> % (drop 1) (cons upcoming-piece)))))
 
-(defn xs-ys->place-actives! [xs-ys]
-  (when (seq xs-ys)
-    (let [x-y (first xs-ys) x (first x-y) y (second x-y)]
-      (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true :x x :y y})
-      (xs-ys->place-actives! (rest xs-ys)))))
+;; TODO refactor approach of this function and the following one - perform this
+;; purely on the board, then swap out the board.
+(defn coords->place-actives!
+  "Given a list of coordinate pairs, update the game board with those locations and active."
+  [coords]
+  (when (seq coords)
+    (let [[x y] (first coords)]
+      (swap! game assoc-in [:board y x] {:color (:active-piece-color @game) :active true})
+      (coords->place-actives! (rest coords)))))
 
-(defn xs-ys->replace-actives!
-  [xs-ys]
+(defn coords->replace-actives!
+  "Given a list of coordinate pairs, clear the game board's current actives and
+  update it with the provided xy coordinate locations as active."
+  [coords]
   (swap! game update :board board->board-without-actives)
-  (xs-ys->place-actives! xs-ys))
+  (coords->place-actives! coords))
 
 (defn handle-completed-rows! []
   (let [[board-without-completions num-completions]
@@ -161,12 +169,12 @@
   (let [;; get the next piece the queue
         new-active-piece (first (:piece-queue @game))
         ;; TODO move color handling from top-level state to active-piece sub-state
-        {:keys [color-rgb-hex piece-type starting-y-offset xs-ys-rotations]} new-active-piece
+        {:keys [color-rgb-hex piece-type starting-y-offset piece-matrix-rotations]} new-active-piece
         centering-x-offset (-> board-width (quot 2) (- 1))
         starting-top-left-y (+ starting-y-offset board-y-negative-offset)
         starting-top-left-xy [centering-x-offset starting-top-left-y]
-        new-active-piece-xys (piece-matrix->xys (first xs-ys-rotations) starting-top-left-xy)
-        new-piece-overlaps-existing-squares (not (xs-ys-are-free? new-active-piece-xys (:board @game)))]
+        new-active-piece-coords (piece-matrix->coords (first piece-matrix-rotations) starting-top-left-xy)
+        new-piece-overlaps-existing-squares (not (coords-are-free? new-active-piece-coords (:board @game)))]
     ;; (println "add-piece!")
     ;; remove the piece-being-added from front of the queue
     (bump-queue!)
@@ -177,16 +185,16 @@
     (swap! game assoc :active-piece-top-left-y starting-top-left-y)
     (swap! game assoc :active-rotation-index 0)
     (swap! game assoc :active-piece new-active-piece)
-    (xs-ys->place-actives! new-active-piece-xys)
+    (coords->place-actives! new-active-piece-coords)
     (when new-piece-overlaps-existing-squares (end-game!))))
 
 (defn rotate! []
   (let [new-rotation-index (cycle-rotation-index
                             (:active-rotation-index @game)
-                            (get-in @game [:active-piece :xs-ys-rotations]))
-        rotated-active-xys (rotate @game)]
+                            (get-in @game [:active-piece :piece-matrix-rotations]))
+        rotated-active-coords (rotate @game)]
     (swap! game assoc :active-rotation-index new-rotation-index)
-    (xs-ys->replace-actives! rotated-active-xys)))
+    (coords->replace-actives! rotated-active-coords)))
 
 (defn deactivate-piece!
   "Swap out the board with one where all squares are {:active false}."
@@ -202,20 +210,20 @@
     (swap! game assoc :board deactivated-board)))
 
 (defn move-active-piece-down! []
-  (xs-ys->replace-actives! (shift-piece-matrix-down @active-piece-xys))
+  (coords->replace-actives! (shift-piece-matrix-down @active-piece-coords))
   (swap! game update :active-piece-top-left-y inc))
 
 (defn move-left! []
-  (xs-ys->replace-actives! (shift-piece-matrix-left @active-piece-xys))
+  (coords->replace-actives! (shift-piece-matrix-left @active-piece-coords))
   (swap! game update :active-piece-top-left-x dec))
 
 (defn move-right! []
-  (xs-ys->replace-actives! (shift-piece-matrix-right @active-piece-xys))
+  (coords->replace-actives! (shift-piece-matrix-right @active-piece-coords))
   (swap! game update :active-piece-top-left-x inc))
 
 (defn tick! []
   (when (not (:game-over @game))
-    (if (piece-can-move-down? @active-piece-xys (:board @game))
+    (if (piece-can-move-down? @active-piece-coords (:board @game))
       (move-active-piece-down!)
       (do (deactivate-piece!)
           (handle-completed-rows!)
@@ -273,8 +281,8 @@
                     ;; has to wait the normal tick time duration to get the next
                     ;; add-piece
                     (or is-d is-down) (when is-running (tick!))
-                    is-left (when (and is-running (piece-can-move-left? @active-piece-xys (:board @game))) (move-left!))
-                    is-right (when (and is-running (piece-can-move-right? @active-piece-xys (:board @game))) (move-right!))
+                    is-left (when (and is-running (piece-can-move-left? @active-piece-coords (:board @game))) (move-left!))
+                    is-right (when (and is-running (piece-can-move-right? @active-piece-coords (:board @game))) (move-right!))
                     is-r (do (end-game!) (start-game!)))))]
     (create-class
      {:component-did-mount
@@ -295,9 +303,9 @@
              [:div.hit-area-left
               {:on-touch-start #(reset! left-touch-interval
                                         (do
-                                          (when (and is-running (piece-can-move-left? @active-piece-xys (:board @game))) (move-left!))
+                                          (when (and is-running (piece-can-move-left? @active-piece-coords (:board @game))) (move-left!))
                                           ;; TODO improve the hold-and-move timing (make it wait for a sec, then start going - a bit faster than prev setting)
-                                          (js/setInterval (fn [] (when (and is-running (piece-can-move-left? @active-piece-xys (:board @game))) (move-left!))) 150)))
+                                          (js/setInterval (fn [] (when (and is-running (piece-can-move-left? @active-piece-coords (:board @game))) (move-left!))) 150)))
                :on-touch-end #(js/clearInterval @left-touch-interval)}]
              [:div.hit-area-down
               {:on-touch-start #(reset! down-touch-interval (js/setInterval (fn [] (tick!)) 50))
@@ -305,8 +313,8 @@
              [:div.hit-area-right
               {:on-touch-start #(reset! right-touch-interval
                                         (do
-                                          (when (and is-running (piece-can-move-right? @active-piece-xys (:board @game))) (move-right!))
-                                          (js/setInterval (fn [] (when (and is-running (piece-can-move-right? @active-piece-xys (:board @game))) (move-right!))) 150)))
+                                          (when (and is-running (piece-can-move-right? @active-piece-coords (:board @game))) (move-right!))
+                                          (js/setInterval (fn [] (when (and is-running (piece-can-move-right? @active-piece-coords (:board @game))) (move-right!))) 150)))
                :on-touch-end #(js/clearInterval @right-touch-interval)}]]])
 
          ;; gameplay area
@@ -316,7 +324,7 @@
            [board board-width game board-y-negative-offset]]
           [:div.meta-container
            [:div.upcoming-piece-container {:class (when (:is-paused @game) "is-paused")}
-            [upcoming-piece-component game bump-queue! tetrominoes]]
+            [upcoming-piece-component game bump-queue!]]
            [:div.rows-completed-container
             [rows-completed-component game bump-queue!]]
            [:div.level-container {:class (when (:is-paused @game) "is-paused")}

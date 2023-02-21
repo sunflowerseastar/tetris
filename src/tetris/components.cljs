@@ -1,4 +1,5 @@
-(ns tetris.components)
+(ns tetris.components
+  (:require [tetris.helpers :refer [piece-matrix->coords]]))
 
 (defn board [board-width game board-y-negative-offset]
   [:div.board {:style {:gridTemplateColumns (str "repeat(" board-width ", 1fr)")}}
@@ -15,24 +16,21 @@
        row))
     (drop board-y-negative-offset (:board @game)))])
 
-(defn upcoming-piece-component [game bump-queue! tetrominoes]
+;; TODO fix queue
+(defn upcoming-piece-component [game bump-queue!]
   [:div.upcoming-piece
    {:on-click #(when (not (:game-over @game)) (bump-queue!))}
-   (let [upcoming-piece (first (:piece-queue @game))
-         {:keys [color-rgb-hex piece-type]} upcoming-piece
-         base-xs-ys (->> tetrominoes
-                         (filter #(= (:piece-type %) piece-type))
-                         first
-                         :xs-ys)
-         xs (map first base-xs-ys) ys (map second base-xs-ys)
-         min-x (reduce min xs) max-x (reduce max xs) width-x (inc (- max-x min-x))
-         min-y (reduce min ys) max-y (reduce max ys) height-y (inc (- max-y min-y))
-         matrix-for-grid (vec (repeat height-y (vec (repeat width-x 0))))]
+   (let [{:keys [active-piece active-piece-top-left-x active-piece-top-left-y]} @game
+         {:keys [color-rgb-hex]} (first (:piece-queue @game))
+         piece-matrix (-> active-piece :piece-matrix-rotations first)
+         coords (piece-matrix->coords piece-matrix [active-piece-top-left-x active-piece-top-left-y])
+         matrix-for-grid (vec (repeat (count (first piece-matrix))
+                                      (vec (repeat (-> piece-matrix first first) 0))))]
      (map-indexed
       (fn [y row]
         (map-indexed
          (fn [x]
-           (let [match (some #{[x y]} base-xs-ys)]
+           (let [match (some #{[x y]} coords)]
              [:div.upcoming-piece-square {:key (str x y)
                                           :style {:grid-column (+ x 1) :grid-row (+ y 1)
                                                   :background (when match color-rgb-hex)}}]))
