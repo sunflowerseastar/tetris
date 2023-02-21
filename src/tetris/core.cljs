@@ -130,7 +130,8 @@
 ;; TODO refactor approach of this function and the following one - perform this
 ;; purely on the board, then swap out the board.
 (defn coords->place-actives!
-  "Given a list of xy coordinate pairs, update the game board in those locations. Make them active and give them the current active piece's color."
+  "Given a list of xy coordinate pairs, update the game board in those
+  locations. Make them active and give them the current active piece's color."
   [coords]
   (when (seq coords)
     (let [[x y] (first coords)]
@@ -278,11 +279,7 @@
                     is-up (when (and is-running (piece-can-rotate? @game)) (rotate!))
                     is-p (when (not is-game-over) (pause-or-unpause!))
                     is-n (when (not is-game-over) (bump-queue!))
-                    ;; FIXME when piece is at the bottom, user cannot press
-                    ;; 'down' and go ahead and start with the next piece. User
-                    ;; has to wait the normal tick time duration to get the next
-                    ;; add-piece
-                    (or is-d is-down) (when is-running (tick!))
+                    (or is-d is-down) (when (and is-running (piece-can-move-down? @active-piece-coords (:board @game))) (tick!))
                     is-left (when (and is-running (piece-can-move-left? @active-piece-coords (:board @game))) (move-left!))
                     is-right (when (and is-running (piece-can-move-right? @active-piece-coords (:board @game))) (move-right!))
                     is-r (do (end-game!) (start-game!)))))]
@@ -336,5 +333,4 @@
   (when-let [el (gdom/getElement "app")]
     (rdom/render [tetris] el)))
 
-(defonce start-up (do (mount-app-element) true)
-  )
+(defonce start-up (do (mount-app-element) true))
