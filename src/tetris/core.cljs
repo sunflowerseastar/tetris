@@ -129,21 +129,21 @@
 
 ;; TODO refactor approach of this function and the following one - perform this
 ;; purely on the board, then swap out the board.
-(defn coords->place-actives!
+(defn place-active-coords!
   "Given a list of xy coordinate pairs, update the game board in those
   locations. Make them active and give them the current active piece's color."
   [coords]
   (when (seq coords)
     (let [[x y] (first coords)]
       (swap! game assoc-in [:board y x] {:color-hex (:active-piece-color @game) :active true})
-      (coords->place-actives! (rest coords)))))
+      (place-active-coords! (rest coords)))))
 
-(defn coords->replace-actives!
+(defn replace-active-coords!
   "Given a list of xy coordinate pairs, clear the game board's current actives and
   update it with the provided xy coordinate locations as active."
   [coords]
   (swap! game update :board board->board-without-actives)
-  (coords->place-actives! coords))
+  (place-active-coords! coords))
 
 (defn handle-completed-rows! []
   (let [[board-without-completions num-completions]
@@ -188,7 +188,7 @@
     (swap! game assoc :active-piece-top-left-y starting-top-left-y)
     (swap! game assoc :active-rotation-index 0)
     (swap! game assoc :active-piece new-active-piece)
-    (coords->place-actives! new-active-piece-coords)
+    (place-active-coords! new-active-piece-coords)
     (when new-piece-overlaps-existing-squares (end-game!))))
 
 (defn rotate! []
@@ -197,7 +197,7 @@
                             (get-in @game [:active-piece :piece-matrix-rotations]))
         rotated-active-coords (rotate @game)]
     (swap! game assoc :active-rotation-index new-rotation-index)
-    (coords->replace-actives! rotated-active-coords)))
+    (replace-active-coords! rotated-active-coords)))
 
 (defn deactivate-piece!
   "Swap out the board with one where all squares are {:active false}."
@@ -213,15 +213,15 @@
     (swap! game assoc :board deactivated-board)))
 
 (defn move-active-piece-down! []
-  (coords->replace-actives! (shift-piece-matrix-down @active-piece-coords))
+  (replace-active-coords! (shift-piece-matrix-down @active-piece-coords))
   (swap! game update :active-piece-top-left-y inc))
 
 (defn move-left! []
-  (coords->replace-actives! (shift-piece-matrix-left @active-piece-coords))
+  (replace-active-coords! (shift-piece-matrix-left @active-piece-coords))
   (swap! game update :active-piece-top-left-x dec))
 
 (defn move-right! []
-  (coords->replace-actives! (shift-piece-matrix-right @active-piece-coords))
+  (replace-active-coords! (shift-piece-matrix-right @active-piece-coords))
   (swap! game update :active-piece-top-left-x inc))
 
 (defn tick! []
